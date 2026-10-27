@@ -1,7 +1,7 @@
 {
-  "created_utc": "2026-10-27T07:58:48+00:00",
+  "created_utc": "2026-10-27T16:29:51+00:00",
   "command": "python3 window_sweep/run_sweep.py",
-  "git_commit": "6f9100ca3e7ca7e11fc07fb96b6ded2ca6d33338",
+  "git_commit": "622c41dc0a1093e79fb301b61fe2d4bb2970f4e9",
   "git_uncommitted_changes": true,
   "python": "3.11.4",
   "numpy": "2.4.2",
@@ -23,7 +23,7 @@
     "geo-inference-scheduler/Sur/configs/policies/sw_linucb_no_context.yaml": "30989a6151d35eefbdf6189de810927b3b4c968e394510939fa275ee4429e85f"
   },
   "runs": 1350,
-  "runtime_s": 1257.8,
+  "runtime_s": 1219.0,
   "simulator": "Parikshit/simulator (SimPy) through Krupesh's router with Jyotir's filter",
   "t0_s": 200.0,
   "s6_return_s": 400.0

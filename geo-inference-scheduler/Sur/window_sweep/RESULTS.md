@@ -11,9 +11,9 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 
 ## What was run
 
-- **Runs:** 1,350 on 16 processes, in 1,258 s (about 21 min).
-  - Provenance is in `results/manifest.json`: git commit `6f9100c` with this update on top, and SHA-256 hashes of every config file. The hashed files are the sweep, policy and filter configs, and Parikshit's nodes, workload, calibration and six event traces.
-  - The runs are deterministic. The sweep ran twice, before and after the default window changed, and every run present in both gave identical numbers.
+- **Runs:** 1,350 on 16 processes, in 1,219 s (about 20 min).
+  - Provenance is in `results/manifest.json`: git commit `622c41d` (Jyotir's fixed filter, commit 59b63af, included), and SHA-256 hashes of every config file. The hashed files are the sweep, policy and filter configs, and Parikshit's nodes, workload, calibration and six event traces.
+  - The runs are deterministic. The sweep has run three times: before and after the default window changed, and after Jyotir's filter and lowest-energy fix. Every run present in two of them gave identical numbers, except lowest-energy's after its fix.
 - **Pipeline:** the same one Riya's experiment runner uses.
   - **Parikshit's simulator:**
     - 5 sites (2 H100, 3 A100), with real Azure request traces at 80 requests/s and real prices and pings;
@@ -53,7 +53,7 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 ## Findings
 
 1. **The learned policies beat every baseline in every scenario (Table E).**
-   - **S1 goodput.** Plain LinUCB and every per-node window reach 72.2 req/s and meet the SLO for 90.7 % of requests. The best baseline, lowest-energy, reaches 61.0 req/s and the others 54.5–59.0 req/s; the baselines meet the SLO for 68–77 % of requests.
+   - **S1 goodput.** Plain LinUCB and every per-node window reach 72.2 req/s and meet the SLO for 90.7 % of requests. The best baseline, lowest-energy, reaches 61.1 req/s and the others 54.5–59.0 req/s; the baselines meet the SLO for 68–77 % of requests.
    - **Why.** The policies learned the interaction the simulator was calibrated to have: an A100 cannot start 59.5 % of interactive requests within 250 ms even when idle, while an H100 misses only 10.2 % (Parikshit's `report/simulator_section.md`).
    - **Cost.** They are also about 2–2.5 times cheaper per SLO-met request: 259–312 µ$ in S3, against 522–677 µ$ for min-RTT, static-weighted, least-load, power-of-two and round-robin (Table F). They keep the busy sites busy, and a lightly used site costs more per request.
 
@@ -71,8 +71,11 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
      - W = 1000 and 2000 also give more goodput than plain LinUCB (91.9 and 92.5 req/s, intervals clear of it), but their adaptation-time intervals overlap plain LinUCB's. W = 5000 (91.7 req/s) is within plain LinUCB's interval on both.
      - W = 200 is too short: 90.1 req/s and the lowest burst level of the per-node windows (G\* 165.5).
    - **Why.** During the burst the two H100 sites fill up and their outcomes get worse. With a window, the outcomes from before the burst age out, so the policy sees sooner that its favourite sites are slower now and spreads the load.
-   - **Load-balancing baselines adapt faster still.** Least-load adapts in 4.4 s [4.0, 5.2] and reaches a higher burst level (G\* 178.2 against 174.1 for W = 500); round-robin reaches 186.6. A policy that concentrates traffic has to re-learn when that traffic triples.
-   - **Over the whole run,** the learned policies still deliver more goodput (91.8 against 82.7 req/s for least-load), because before and after the burst they are far better.
+   - **The baselines adapt faster still.**
+     - Least-load adapts in 4.4 s [4.0, 5.2] and reaches a higher burst level (G\* 178.2 against 174.1 for W = 500).
+     - Lowest-energy, the best baseline in S2, adapts in 7.9 s [6.3, 9.5] and reaches 186.1; round-robin reaches 186.6.
+     - A policy that concentrates traffic has to re-learn when that traffic triples.
+   - **Over the whole run,** the learned policies still deliver more goodput (91.8 req/s against 85.8 for lowest-energy and 82.7 for least-load), because before and after the burst they are far better.
 
 4. **After the S6 outage, short windows recover fastest, but W = 200 abandons the node (Table B1).**
    - **Plain LinUCB** recovers in 14.7 s [7.5, 22.6] from the node's return at 400 s.
@@ -82,12 +85,12 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
      - It rushes onto the returning node for 0.9 s [0.7, 1.0], against 2.5 s [1.0, 4.3] for plain LinUCB.
      - It keeps its goodput: 70.8 req/s [70.2, 71.3], against 70.1 [69.9, 70.3].
    - **Global windows** recover more slowly (16.7–19.9 s for W ≤ 5000) and settle lower after the return (G\* 62.0–71.9 req/s; Table B2).
-   - **A warning about short times.** Lowest-energy "recovers" in 3.0 s because it never sends that node anything (abandoned in 10 of 10 seeds), so a short time needs the traffic share next to it.
+   - **A warning about short times.** Lowest-energy "recovers" in 7.4 s, faster than plain LinUCB, only because it never sends that node anything (abandoned in 10 of 10 seeds; New York is the most expensive site). A short time needs the traffic share next to it.
 
 5. **The price shift does not change the learned routing (S3, Table E).** S3 gives the learned policies exactly the S1 numbers.
    - **Routing.** With a per-node window of W = 500 (seed 0), 72.0 % of requests go to the California sites before the shift and 73.0 % after (S1: 72.0 % and 73.2 %), although California's prices jump from about $0 to $0.046–0.050/kWh.
    - **Why.** With the reward weights 1.0 / 0.2 / 0.1 / 0.1, meeting the SLO dominates, and after the shift the energy term moves the reward by only about 0.01.
-   - **Only lowest-energy reacts:** 61.0 → 53.8 req/s.
+   - **Only lowest-energy reacts:** 61.1 → 54.0 req/s.
    - **What it would take.** A price-aware policy needs a larger energy weight; that is the team's reward-weights decision (Krupesh's handbook §7, #4).
 
 6. **S4 and S5: windows neither help nor hurt (Table E).** All per-node windows are within each other's intervals and plain LinUCB's: 71.3–71.9 req/s in S4 and 70.5–71.0 in S5. Both changes hit the New York site, which serves mostly batch requests, whose 1,000-ms SLO absorbs the throttling and the +80 ms.
@@ -102,7 +105,7 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
    - **True-state check.** Parikshit's simulator also checks the chosen node's *true* state at decision time, which can be up to 1 s newer than the router's view.
      - A per-node window of W = 500 reaches a node that has just passed a limit about 3,200 times per S2 run (past the power limit during the burst), 142 times per S4 run (past 85 °C) and 82 times per S6 run.
      - The S6 cases are all power-limit hits on A100 sites that take over New York's traffic during the outage, at nodes that were up. In seed 3, the seed with the most, all 461 are of this kind; none involve the warming node.
-     - The baselines reach such nodes more often: about 8,000 times per S2 run for least-load, and 13,300–19,700 per run in every scenario for lowest-energy, which sends everything to the cheapest site.
+     - The baselines reach such nodes more often: about 8,000 times per S2 run for least-load, and 12,900–19,800 per run in every scenario for lowest-energy. Lowest-energy sends everything to the cheapest site until its slots are full, and that site crosses the power limit first, since its capacity check counts slots, not power.
    - **Cause.** These come from the telemetry's age, not from the policies (team item 3).
 
 **Reward scale.** This sweep uses `energy_cost_max_usd` = $0.00001, about the 99th percentile of a request's energy cost on Parikshit's simulator in S1–S3 ($8.1e-6); 0.4 % of requests hit the cap. With the earlier $0.0002, the energy term was about 0.002 for a typical request, so energy did not count at all.
@@ -189,7 +192,7 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 | least-load | 58.5 [58.4, 58.7] | 82.7 [82.4, 83.0] | 58.5 [58.4, 58.7] | 56.5 [56.4, 56.6] | 57.0 [56.9, 57.1] | 56.4 [56.2, 56.5] |
 | power-of-two | 58.4 [58.2, 58.5] | 82.5 [82.3, 82.7] | 58.4 [58.2, 58.5] | 56.3 [56.2, 56.5] | 56.9 [56.7, 57.0] | 56.2 [56.0, 56.3] |
 | round-robin | 54.5 [54.3, 54.7] | 80.6 [80.4, 80.7] | 54.5 [54.3, 54.7] | 53.0 [52.9, 53.2] | 53.4 [53.2, 53.5] | 52.6 [52.5, 52.8] |
-| lowest-energy | 61.0 [60.8, 61.2] | 29.7 [29.5, 29.8] | 53.8 [53.7, 54.0] | 61.0 [60.8, 61.2] | 61.0 [60.8, 61.2] | 61.0 [60.8, 61.2] |
+| lowest-energy | 61.1 [60.9, 61.3] | 85.8 [85.6, 86.0] | 54.0 [53.8, 54.1] | 61.1 [60.9, 61.3] | 61.1 [60.9, 61.3] | 61.1 [60.9, 61.3] |
 
 ### Table F — S3 price shift: cost per SLO-met request (µ$)
 
@@ -201,7 +204,7 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 | per-node W = 2000 | 291.1 [288.7, 293.7] |
 | per-node W = 5000 | 309.0 [304.9, 312.9] |
 | plain LinUCB | 311.5 [304.6, 317.5] |
-| lowest-energy | 354.0 [352.4, 355.7] |
+| lowest-energy | 360.3 [359.0, 361.5] |
 | global W = 5000 | 370.5 [366.9, 373.7] |
 | min-RTT | 522.4 [520.6, 524.4] |
 | static-weighted | 625.3 [623.8, 626.9] |
@@ -248,7 +251,7 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
   - *Better than the strongest baseline:*
     - yes, on mean goodput in all six scenarios (Table E);
     - about 2–2.5 times cheaper per SLO-met request (Table F);
-    - but not faster than least-load in S2 (finding 3).
+    - but not faster than least-load (4.4 s) or lowest-energy (7.9 s) in S2 (finding 3).
 
 ## For the team
 
