@@ -25,4 +25,4 @@ python3 -m pytest geo-inference-scheduler/Sur/tests -q
 | `test_figures_and_tables.py` | the figure and table scripts, and that every table in `window_sweep/RESULTS.md` equals what `summary.csv` gives |
 | `test_router_plugin.py` | Sur's policies and reward inside Krupesh's router (his code, unmodified): `Policy` subclasses, registry names, his typed `Request` / `NodeState` / `Outcome`, failed requests, the end-to-end acceptance check, and catching a router still on his mock reward |
 
-One test is marked **expected to fail** (`xfail`): `test_s6_warming_node_respects_hard_rules`. It records a known bug in Jyotir's filter, where a warming node skips the other hard rules. Once that bug is fixed, the test will pass, and `strict=True` makes the suite report that so the marker can be removed.
+`test_s6_warming_node_respects_hard_rules` used to be marked **expected to fail** (`xfail`), recording a bug in Jyotir's filter where a warming node skipped the other hard rules. Jyotir fixed it in commit 59b63af, so the marker is gone and the test now guards the fix.

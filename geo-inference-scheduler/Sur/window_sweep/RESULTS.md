@@ -261,7 +261,7 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 3. **Telemetry age (Krupesh and Parikshit).** The router's view is up to 1 s old, so in S2 and S4 requests reach nodes that have just crossed a limit (finding 8). Either of these would reduce it:
    - counting the router's own recent placements against power and temperature, as it already does for load;
    - a shorter telemetry tick.
-4. **Jyotir's warming-node bug is still in the filter, but it does not affect these runs.** The bug lets a warming node skip the memory, power and temperature checks. On Parikshit's simulator the warming node never comes near those limits: none of the S6 true-state violations involve it (finding 8).
+4. **Jyotir's warming-node bug is fixed (his commit 59b63af), and it never affected these runs.** The bug let a warming node skip the memory, power and temperature checks. On Parikshit's simulator the warming node never comes near those limits: none of the S6 true-state violations involve it (finding 8), and sweep jobs re-run with the fixed filter give identical numbers. His fix brought one regression (Jyotir): when a node reports `kv_capacity_tokens`, the memory rule compares against 100 % of the memory instead of `kv_cache_max_frac` (0.90).
 5. **The S2 burst is mild (Parikshit's README, item 5).** At 80 requests/s the 3× burst stays below the cluster's maximum throughput, so an even spread absorbs it. A harder S2 (a higher base rate) would separate the policies more.
 
 ## Figures (`results/figures/`)

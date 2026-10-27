@@ -189,10 +189,11 @@ These come from the window sweep on Parikshit's simulator through Krupesh's rout
 4. **The router's view is up to 1 s old.** In S2 and S4 the policy (and every baseline) reaches nodes that have just crossed the power or temperature limit, as Parikshit's true-state check shows.
    - Per-node W = 500: about 3,200 such requests per S2 run and 142 per S4 run.
    - Counting the router's own placements against power and temperature, as it does for load, would cut this.
-5. **Jyotir's filter bug is still there, but it does not affect these runs.**
-   - The bug: a `warming` node skips the memory, power and temperature checks (`filter.py`, rule 1 returns early).
-   - On Parikshit's simulator the warming node never nears those limits, so none of the S6 true-state violations involve it.
-   - `tests/test_toy_cluster.py::test_s6_warming_node_respects_hard_rules` still records it as an expected failure, on the stand-in.
+5. **Jyotir's warming-node bug is fixed (his commit 59b63af).**
+   - The bug: a `warming` node skipped the memory, power and temperature checks (`filter.py`, rule 1 returned early).
+   - It never affected the runs on Parikshit's simulator: the warming node never nears those limits there, and re-running sweep jobs with the fixed filter gives identical numbers.
+   - `tests/test_toy_cluster.py::test_s6_warming_node_respects_hard_rules`, an expected failure until then, now guards the fix.
+   - **One regression came with the fix:** when a node reports `kv_capacity_tokens`, the memory rule checks the request against 100 % of the memory and ignores the configured 90 % limit (`kv_cache_max_frac`). A node 95 % full still accepts a small request. Jyotir should compare against `kv_cache_max_frac × kv_capacity_tokens`.
 6. **The adaptation-time metric.**
    - **Noise floor.** In S1, where nothing changes, plain LinUCB and W = 500 show a non-zero time in 4 of 10 seeds (4–12 s), because the interactive arrivals are bursty. Read every scenario's time against that floor.
    - **S6** needs the second anchor at the node's return (400 s), as the sweep does.

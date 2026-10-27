@@ -91,7 +91,7 @@ def test_true_state_problems_checks_every_hard_rule():
     assert true_state_problems(req, {**good, "power_headroom_kw": 1.0}, limits) == ["power_limit"]
     assert true_state_problems(req, {**good, "temperature_c": 85.0}, limits) == ["temperature_high"]
     warm_hot = {**good, "status": "warming", "temperature_c": 90.0}
-    assert true_state_problems(req, warm_hot, limits) == ["temperature_high"]  # unlike Jyotir's filter (F1)
+    assert true_state_problems(req, warm_hot, limits) == ["temperature_high"]  # a warming node gets every check (F1)
     assert true_state_problems(req, warm_hot, {**limits, "allow_warming_nodes": False})[0] == "node_warming"
 
 

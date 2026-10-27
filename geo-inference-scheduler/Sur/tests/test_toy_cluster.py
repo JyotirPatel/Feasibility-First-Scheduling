@@ -283,15 +283,9 @@ def test_no_hard_rule_is_broken_in_s1_to_s5(scenario):
         assert simulate(make(), scenario, 0, cluster=CLUSTER).stats["hard_rule_violations"] == 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known bug in Jyotir's filter: a node with status 'warming' skips the model, memory, power and "
-        "temperature checks (filter.py, rule 1 returns early), so a full warming node is still allowed. "
-        "When the filter is fixed this test passes and strict=True turns that into a failure: remove this marker."
-    ),
-)
 def test_s6_warming_node_respects_hard_rules():
+    """A warming node must pass the model, memory, power and temperature rules too. This was a strict xfail
+    until Jyotir fixed his filter (commit 59b63af, rule 1 no longer returns early for a warming node)."""
     from baselines import MinRTT
 
     cluster = short_cluster(rate=120.0)  # enough traffic to fill the warming node's KV cache

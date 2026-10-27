@@ -65,13 +65,14 @@ def test_fixed_filter_what_if_applies_the_hard_rules_to_warming_nodes():
     limits = ff.load_config()
     full = make_node(status="warming", kv_used_frac=0.95)
     original = ff._check_node
-    assert [n["node_id"] for n in ff.feasibility_filter(make_request(), [full], limits)[0]] == ["us-east-1"]  # the bug
+    # Jyotir fixed the bug in the real filter (59b63af): a full warming node is rejected even outside the what-if
+    assert ff.feasibility_filter(make_request(), [full], limits)[0] == []
     with fixed_warming_rule():
         allowed, rejected = ff.feasibility_filter(make_request(), [full], limits)
         assert allowed == [] and rejected == [{"node_id": "us-east-1", "reason": "memory_full"}]
         allowed, _ = ff.feasibility_filter(make_request(), [make_node(status="warming", kv_used_frac=0.1)], limits)
         assert allowed[0]["_warming"] is True
-        # the same run that test_toy_cluster.py marks as the known bug (xfail) is safe with the fix
+        # the same run as test_toy_cluster.py::test_s6_warming_node_respects_hard_rules is safe with the fix
         busy = short_cluster(rate=120.0)
         assert simulate(MinRTT(), "s6_outage_recovery", 0, cluster=busy).stats["hard_rule_violations"] == 0
     assert ff._check_node is original

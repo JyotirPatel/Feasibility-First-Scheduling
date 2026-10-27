@@ -17,8 +17,9 @@ router plug-in is present, Sur's policies and reward (Sur/router_plugin/).
 true_state_problems() checks the chosen node's true state at the moment of the decision
 against the brief's hard rules (§6.1), with Jyotir's limits from his feasibility.yaml. The
 router decides on telemetry up to one tick old, so the node may, for example, have gone
-down or filled up since its last report. Unlike Jyotir's filter today it also checks a
-warming node, and it checks that the request fits in the KV cache (Krupesh's F1 and F2).
+down or filled up since its last report. Like Jyotir's filter since his commit 59b63af, it
+checks a warming node too and checks that the request fits in the KV cache (Krupesh's F1 and
+F2). Unlike his filter, it checks the fit against the configured kv_cache_max_frac.
 """
 
 from __future__ import annotations

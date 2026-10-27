@@ -143,7 +143,8 @@ A 600-s run of the 5-node setup (about 48,000 requests) takes about 7–15 s.
   - Your upload currently sits in `Krupesh/geo-inference-scheduler/Krupesh/`; the simulator finds it there or in `Krupesh/`.
 - **Jyotir (filter).**
   - Every record has the schema's 14 fields and passes your filter.
-  - `true_state_violation` shows where the router's 1-s-old view and the truth disagree, including warming nodes your filter does not check yet (F1).
+  - `true_state_violation` shows where the router's 1-s-old view and the truth disagree. It is an independent check of your filter.
+  - It still applies the 90 % memory limit (`kv_cache_max_frac`) when a node reports `kv_capacity_tokens`; since your commit 59b63af your filter compares the request against 100 % of the memory in that case.
 - **Sur (policies).**
   - `sur:linucb` and `sur:sw_linucb` run on the simulator through Sur's router plug-in, with Sur's reward.
   - The window sweep can now be re-run here instead of on Sur's stand-in.

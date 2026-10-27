@@ -98,11 +98,13 @@ def fixed_warming_rule():
     """
     What-if: Jyotir's filter with its warming-node bug fixed, in memory only.
 
-    The real filter returns as soon as it sees status "warming" (rule 1 in
-    filter.py), so a warming node skips the model, memory, power and temperature
+    The filter used to return as soon as it saw status "warming" (rule 1 in
+    filter.py), so a warming node skipped the model, memory, power and temperature
     rules. Inside this block a warming node must pass them too, and is then
-    allowed with its warming tag as before. filter.py is not changed, and the
-    original rule is back when the block ends.
+    allowed with its warming tag as before. Jyotir fixed the real filter in commit
+    59b63af, so this block now behaves like it; it is kept to reproduce the stand-in
+    results in RESULTS_standin.md. filter.py is not changed, and the original rule
+    is back when the block ends.
     """
     import feasibility_filter.filter as ff
 
