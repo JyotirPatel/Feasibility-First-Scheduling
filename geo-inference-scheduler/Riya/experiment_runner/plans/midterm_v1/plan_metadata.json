@@ -1,0 +1,9 @@
+{
+  "mode": "dry_run",
+  "created_at_utc": "2026-10-27T03:25:39.822608+00:00",
+  "git_commit": "a8106d4c0cbe6034e7e7e6e8485b342263ec4b78",
+  "working_tree_dirty": true,
+  "planned_runs": 420,
+  "executed_runs": 0,
+  "note": "Experiment plan only. No simulations were executed. Policy identifiers and scenario paths require integration."
+}
