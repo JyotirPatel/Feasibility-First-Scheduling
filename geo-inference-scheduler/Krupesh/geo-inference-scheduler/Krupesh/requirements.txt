@@ -1,0 +1,10 @@
+# Krupesh's router + integration (Python >= 3.11). Install: pip install -r requirements.txt
+fastapi>=0.110
+uvicorn>=0.27
+httpx>=0.27
+pydantic>=2.5
+pandas>=2.1
+pyarrow>=14
+pyyaml>=6.0        # needed by Jyotir's load_config
+pytest>=8
+ruff>=0.5

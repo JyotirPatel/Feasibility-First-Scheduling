@@ -1,0 +1,10 @@
+# Lint settings for Krupesh's folder (run: ruff check . && ruff format --check . from Krupesh/)
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]
+
+[lint.isort]
+known-first-party = ["api_contract", "router_service", "decision_log", "integration", "kr_helpers"]
