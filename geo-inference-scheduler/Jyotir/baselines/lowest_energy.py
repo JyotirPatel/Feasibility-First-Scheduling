@@ -25,7 +25,16 @@ class LowestEnergy(Policy):
         if not candidates:
             raise ValueError("No feasible candidates — router should have rejected this request.")
 
-        return min(candidates, key=lambda n: n.get("energy_price_usd_kwh", float("inf")))["node_id"]
+        # Exclude nodes that are already at or over their request capacity so
+        # we don't flood the cheapest site during a burst. Fall back to the
+        # full candidate list if every node is at capacity (better than crashing).
+        non_full = [
+            n for n in candidates
+            if n.get("queue_len", 0) + n.get("running", 0) < n.get("capacity", float("inf"))
+        ]
+        pool = non_full if non_full else candidates
+
+        return min(pool, key=lambda n: n.get("energy_price_usd_kwh", float("inf")))["node_id"]
 
     def update(self, request: dict, node_id: str, outcome: Outcome) -> None:
         pass

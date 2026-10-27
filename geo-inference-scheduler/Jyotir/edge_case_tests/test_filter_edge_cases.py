@@ -1,11 +1,14 @@
 """
 Edge case tests for the feasibility filter — owner: Jyotir
 
-Three cases that must work correctly even though they are uncommon:
-  1. All nodes are too hot   → empty allowed list, controlled rejection
-  2. Only one node passes    → that one node is returned, no crash
-  3. Node is warming up      → allowed with _warming=True (default config)
-                               rejected when allow_warming_nodes=False
+Cases covered:
+  1. All nodes are too hot        → empty allowed list, controlled rejection
+  2. Only one node passes         → that one node is returned, no crash
+  3. Node is warming up           → allowed with _warming=True (default config)
+                                     rejected when allow_warming_nodes=False
+  4. Warming node fails rules 2-5 → must be rejected even when allow_warming_nodes=True
+  5. Loose status values          → "DOWN", "offline", "draining", missing all rejected
+  6. Token-aware memory check     → request that doesn't fit is rejected via kv_capacity_tokens
 
 Run with:  pytest edge_case_tests/test_filter_edge_cases.py -v
 """
@@ -184,3 +187,123 @@ class TestWarmingNode:
         _, rejected = feasibility_filter(BASE_REQUEST, self._warming_cluster(), config_no_warming)
         reason_map = {r["node_id"]: r["reason"] for r in rejected}
         assert reason_map.get("warming-node") == "node_warming"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Edge Case 4: Warming node that fails safety rules 2-5
+# (Bug fix: warming used to skip model/memory/power/temperature checks)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestWarmingNodeFailsSafetyRules:
+
+    def test_warming_node_with_wrong_model_is_rejected(self):
+        node = _make_healthy_node("warming-wrong-model")
+        node["status"] = "warming"
+        node["models_loaded"] = ["llama-3-70b"]  # request asks for llama-3-8b
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 0, "Warming node with wrong model must be rejected"
+        assert rejected[0]["reason"] == "model_missing"
+
+    def test_warming_node_with_full_memory_is_rejected(self):
+        node = _make_healthy_node("warming-full-mem")
+        node["status"] = "warming"
+        node["kv_used_frac"] = 0.95  # above the 0.90 limit
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 0, "Warming node with full memory must be rejected"
+        assert rejected[0]["reason"] == "memory_full"
+
+    def test_warming_node_with_low_power_is_rejected(self):
+        node = _make_healthy_node("warming-low-power")
+        node["status"] = "warming"
+        node["power_headroom_kw"] = 0.5  # below the 2.0 kW minimum
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 0, "Warming node with low power headroom must be rejected"
+        assert rejected[0]["reason"] == "power_limit"
+
+    def test_warming_node_with_high_temp_is_rejected(self):
+        node = _make_healthy_node("warming-hot")
+        node["status"] = "warming"
+        node["temperature_c"] = 90.0  # above the 85 °C limit
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 0, "Warming node that is too hot must be rejected"
+        assert rejected[0]["reason"] == "temperature_high"
+
+    def test_warming_node_that_passes_all_rules_is_still_allowed(self):
+        node = _make_healthy_node("warming-healthy")
+        node["status"] = "warming"
+        allowed, _ = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 1
+        assert allowed[0].get("_warming") is True
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Edge Case 5: Loose status values must be rejected
+# (Bug fix: only exact "down" was rejected; others silently passed as "up")
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestLooseStatusValues:
+
+    def _node_with_status(self, status_value):
+        n = _make_healthy_node(f"node-{status_value}")
+        if status_value is None:
+            n.pop("status", None)  # simulate missing key
+        else:
+            n["status"] = status_value
+        return n
+
+    def test_status_DOWN_uppercase_is_rejected(self):
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [self._node_with_status("DOWN")], BASE_CONFIG)
+        assert len(allowed) == 0
+        assert rejected[0]["reason"] == "node_down"
+
+    def test_status_offline_is_rejected(self):
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [self._node_with_status("offline")], BASE_CONFIG)
+        assert len(allowed) == 0
+        assert rejected[0]["reason"] == "node_down"
+
+    def test_status_draining_is_rejected(self):
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [self._node_with_status("draining")], BASE_CONFIG)
+        assert len(allowed) == 0
+        assert rejected[0]["reason"] == "node_down"
+
+    def test_missing_status_is_rejected(self):
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [self._node_with_status(None)], BASE_CONFIG)
+        assert len(allowed) == 0
+        assert rejected[0]["reason"] == "node_down"
+
+    def test_status_up_still_passes(self):
+        allowed, _ = feasibility_filter(BASE_REQUEST, [self._node_with_status("up")], BASE_CONFIG)
+        assert len(allowed) == 1
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Edge Case 6: Token-aware memory check (kv_capacity_tokens)
+# (Bug fix: old check only used fraction; request could still overflow)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestTokenAwareMemoryCheck:
+
+    def test_request_that_does_not_fit_is_rejected(self):
+        node = _make_healthy_node("small-capacity-node")
+        node["kv_capacity_tokens"] = 1000   # total capacity: 1000 tokens
+        node["kv_used_frac"] = 0.50         # 500 tokens already used
+        # request needs 850 + 200 = 1050 tokens; only 500 are free → must reject
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 0
+        assert rejected[0]["reason"] == "memory_full"
+
+    def test_request_that_fits_is_allowed(self):
+        node = _make_healthy_node("large-capacity-node")
+        node["kv_capacity_tokens"] = 10000  # total capacity: 10 000 tokens
+        node["kv_used_frac"] = 0.50         # 5000 tokens used; 5000 free
+        # request needs 850 + 200 = 1050 tokens; 5000 are free → must pass
+        allowed, _ = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 1
+
+    def test_fallback_fraction_check_used_when_capacity_missing(self):
+        node = _make_healthy_node("no-capacity-field")
+        node.pop("kv_capacity_tokens", None)
+        node["kv_used_frac"] = 0.95         # above 0.90 fraction limit
+        allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
+        assert len(allowed) == 0
+        assert rejected[0]["reason"] == "memory_full"

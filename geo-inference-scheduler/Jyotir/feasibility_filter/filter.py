@@ -87,24 +87,43 @@ def _check_node(request: dict, node: dict, config: dict) -> str | None:
     """
     Returns None if the node passes every rule.
     Returns a reason string on the first rule it fails.
+
+    Rule 1 (status) now only decides whether the node is reachable.
+    Warming nodes are not returned early — they go through rules 2-5
+    exactly like "up" nodes and are flagged at the end if they pass.
+    Unknown / missing status values are treated as "node_down".
     """
 
     # ── Rule 1: Status ────────────────────────────────────────────────────────
-    status = node.get("status", "up")
-    if status == "down":
+    # Normalise to lowercase so "DOWN", "Offline", etc. are all caught.
+    status = str(node.get("status", "")).lower().strip()
+    if status not in ("up", "warming"):
+        # covers "down", "offline", "draining", "" (missing), and anything else
         return "node_down"
-    if status == "warming":
-        return "node_warming"  # caller decides whether to allow or reject
+    is_warming = (status == "warming")
 
     # ── Rule 2: Model available ───────────────────────────────────────────────
     requested_model = request.get("model")
     if requested_model not in node.get("models_loaded", []):
         return "model_missing"
 
-    # ── Rule 3: KV cache has room ─────────────────────────────────────────────
-    kv_limit = config.get("kv_cache_max_frac", 0.90)
-    if node.get("kv_used_frac", 1.0) >= kv_limit:
-        return "memory_full"
+    # ── Rule 3: KV cache — check that this request actually fits ─────────────
+    # If Parikshit's telemetry provides kv_capacity_tokens, use it to check
+    # whether the tokens needed by this request fit in remaining space.
+    # Fall back to the fraction check when capacity is not yet available.
+    kv_capacity = node.get("kv_capacity_tokens")
+    if kv_capacity and kv_capacity > 0:
+        tokens_needed = (
+            request.get("input_tokens", 0) + request.get("expected_output_tokens", 0)
+        )
+        kv_used_tokens = node.get("kv_used_frac", 0.0) * kv_capacity
+        if kv_used_tokens + tokens_needed > kv_capacity:
+            return "memory_full"
+    else:
+        # fallback: reject if already past the configured fill fraction
+        kv_limit = config.get("kv_cache_max_frac", 0.90)
+        if node.get("kv_used_frac", 1.0) >= kv_limit:
+            return "memory_full"
 
     # ── Rule 4: Power headroom above minimum ──────────────────────────────────
     power_min = config.get("power_headroom_min_kw", 2.0)
@@ -116,4 +135,6 @@ def _check_node(request: dict, node: dict, config: dict) -> str | None:
     if node.get("temperature_c", 999.0) >= temp_limit:
         return "temperature_high"
 
-    return None  # all rules passed
+    # ── All rules passed ──────────────────────────────────────────────────────
+    # Signal "warming" so the caller can tag the node; None means fully clear.
+    return "node_warming" if is_warming else None
