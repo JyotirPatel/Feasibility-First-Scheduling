@@ -1,0 +1,6 @@
+# Python 3.11+ (brief §12). Install with:  python3 -m pip install -r geo-inference-scheduler/Sur/requirements.txt
+numpy>=1.26
+pyyaml>=6.0
+pydantic>=2.5
+pytest>=8.0
+matplotlib>=3.8    # window_sweep/make_figures.py only

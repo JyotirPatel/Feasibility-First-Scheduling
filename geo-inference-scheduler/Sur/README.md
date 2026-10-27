@@ -102,3 +102,81 @@ These must appear in the report's Related Work section (not framed as our novelt
 ## Report / Presentation Section
 
 Method section — policy description, context vector, reward function, and a related-work paragraph on contextual bandits and sliding-window forgetting.
+
+---
+
+## Implementation (what is in this folder now)
+
+Every task above is implemented and tested. Each folder has its own README with details.
+
+| Task | Where | Status |
+|---|---|---|
+| 1. Plain LinUCB | `linucb/linucb.py` | done: brief §6.4 math, per-node models, seeded tie-breaking, checkpoints |
+| 2. Sliding-window LinUCB | `sliding_window_linucb/sw_linucb.py` | done, with **both** window readings (`per_node` and `global`; open question, brief §15) |
+| 3. Context vector | `context_vector/features.py` | done: the brief §6.2 features (13 numbers, because the SLO class is one 0/1 flag per class) plus a bias term, scaled to 0..1, and a "no context" switch for the ablation |
+| 4. Reward | `reward/reward.py` | done: `w1·[SLO met] − w2·latency − w3·energy cost − w4·thermal stress`, terms scaled to 0..1, weights in config |
+| 5. Window-size sweep + α check | `window_sweep/` | done on the stand-in simulator; results in `window_sweep/RESULTS.md` (preliminary until Parikshit's simulator exists) |
+| 6. Citations | `citations/` | done: BibTeX and plain text, checked against Crossref (the publishers' records) or the official proceedings pages |
+| Parameter files | `configs/policies/` | `linucb.yaml`, `sw_linucb.yaml`, `sw_linucb_no_context.yaml`; no numbers in the Python code |
+| Checkpoints | `checkpoints/` | save/load in both policies (`.npz`, no pickle); stand-in checkpoints from the sweep |
+| Method section draft | `report/method_section.md` | draft for Riya to merge into the report |
+| Tests | `tests/` | every module tested (`python3 -m pytest geo-inference-scheduler/Sur/tests -q`) |
+
+Install: `python3 -m pip install -r geo-inference-scheduler/Sur/requirements.txt` (Python 3.11+).
+
+### For Krupesh (router)
+
+```python
+from sliding_window_linucb import SlidingWindowLinUCB  # or: from linucb import LinUCB
+
+policy = SlidingWindowLinUCB(seed=run_seed)  # reads configs/policies/sw_linucb.yaml
+
+allowed, rejected = feasibility_filter(request, telemetry)  # Jyotir's filter first
+node_id = policy.choose(request, allowed)  # always one of `allowed`
+...  # POST /feedback arrives later
+policy.update(request, node_id, outcome)  # Outcome(ttft_ms, e2e_ms, slo_met, energy_kwh, cost_usd, reward)
+decision_log_row["reward"] = policy.last_reward
+```
+
+- Both policies subclass the shared `Policy` stub in `Jyotir/stubs/stub_policy.py`, like Jyotir's baselines. When your real base class exists, change the one `from stubs.stub_policy import ...` line in `linucb/linucb.py`.
+- `update()` doesn't receive the features, so the policy stores them itself at `choose()` time, keyed by `request_id`. Please keep `request_id` unique per request and send exactly one feedback for every routed request, **including failures** (for example, a node dying mid-request).
+- The policy computes the reward itself and ignores `outcome.reward`. `reward.compute_reward(node_snapshot, outcome, cfg)` gives the same number for baseline runs.
+- The SLO field is read from `ttft_slo_ms` (brief) or `slo_ms` (Jyotir's stub), because the drafts disagree.
+- `choose()` and `update()` are thread-safe.
+
+### For Riya (experiments)
+
+- **"No forgetting" ablation:** `configs/policies/linucb.yaml`.
+- **"No context" ablation:** `configs/policies/sw_linucb_no_context.yaml`.
+- Both differ from `sw_linucb.yaml` only in the ablated part; `tests/test_configs.py` checks this.
+- **Policy identifiers** (each class's `name`, also written to checkpoints):
+  - `linucb` is `LinUCB` with `linucb.yaml`.
+  - `sw_linucb` is `SlidingWindowLinUCB` with `sw_linucb.yaml`. The "no context" ablation is the same class with `sw_linucb_no_context.yaml`.
+  - Your planner (`Riya/experiment_runner/config.json`) currently calls the second one `sliding_window_linucb`, and it does not list the "no context" ablation yet.
+- **Goodput binning:** the stand-in metric (`standins/adaptation.py`) counts a request in the second it arrived. `Riya/metrics/calculate_metrics.py` counts SLO successes by completion time. Agree on one before the adaptation-time metric is written.
+- **Window sweep:** `window_sweep/results/summary.csv`, with means and 95% bootstrap CIs over 10 seeds; the tables in `window_sweep/RESULTS.md` (generated from it by `window_sweep/make_tables.py`); and figures in `window_sweep/results/figures/`.
+
+### Things found while building this (to discuss with the team)
+
+1. **Bug in Jyotir's filter.** A `warming` node skips the model, memory, power and temperature checks (`filter.py`, rule 1 returns early).
+   - In the S6 sweep this let most policies route requests to a warming node whose KV cache was ≥ 90% full: 234,039 times in total.
+   - That includes plain LinUCB, min-RTT, round-robin, static-weighted and every sliding-window setting except per-node W = 200. Least-load, power-of-two and lowest-energy never did.
+   - It is also the main cause of the S6 slowdowns. With the bug fixed in memory (the what-if `window_sweep/diagnostics.py --fixed-filter`), plain LinUCB's lowest goodput after the node's return rises from 77.7 to 211.4 req/s on average.
+   - `tests/test_toy_cluster.py::test_s6_warming_node_respects_hard_rules` records it as an expected failure.
+2. **Per-node vs global window.** With a per-node window, a node the policy stopped picking may never be tried again. In S6 this really happened.
+   - Per-node windows of W ≤ 2000 sent the recovered node under 1% of requests after its warm-up in 3–7 of 10 seeds (W = 5000: 1 of 10).
+   - The requests lost in its outage were the newest outcomes in its window, and they made the model's estimate for it erratic. At W = 200 and W = 1000 the node was dropped in exactly the seeds where that estimate was negative.
+   - A global window always used it again, but rushed most traffic onto it for 5–7 s (in 69 of 70 runs) while it was still warming up.
+   - See `window_sweep/RESULTS.md`, findings 4 and 5.
+3. **The adaptation-time metric.**
+   - At low request rates, normal random variation alone can break the "≥ 90% of G* for 10 s" rule. At 25 requests/s, S1 (where nothing changes) showed a non-zero time in 2 of 5 seeds for plain LinUCB and in 3 of 5 for static-weighted.
+   - A noisy policy gets noise times too. Even at 240 requests/s, the windows with W ≤ 5000 and every global window score up to 6.5 s on average in S1.
+   - The rule stops at the first 10 s above 0.9·G\*, so a later dip does not count. Plain LinUCB scores 0 s in every S4 and S5 seed although its goodput dips afterwards.
+   - In S2 it is all-or-nothing: 1–2 s or 8–22 s per seed for plain LinUCB and the two fastest windows.
+   - For S6, measuring only from t0 = 200 s misses the node's return at 400 s.
+   - A short adaptation time can also mean the policy simply stopped using the recovered node, so show its traffic share next to the time.
+4. **Rush onto a fresh node.** When a node comes back warming, the model has never seen it in that state, so its exploration bonus is large. Any policy that still uses it can then send it most requests for several seconds, until results for the queued requests come back.
+   - Plain LinUCB did this for 6–7 s in 7 of 10 seeds, and global windows in 69 of their 70 S6 runs.
+   - The stand-in's router already sees fresh queue lengths, so stale telemetry is not the cause.
+   - Fixing the filter bug (item 1) cuts the rush to at most 2 s.
+5. **One faster-adaptation result.** In the S2 traffic burst, per-node W = 5000 adapted faster than plain LinUCB (4.6 s [1.3, 8.1] against 12.1 s [8.5, 15.5]), but with lower goodput during the burst. In no other scenario was a window faster (RESULTS.md, finding 3).

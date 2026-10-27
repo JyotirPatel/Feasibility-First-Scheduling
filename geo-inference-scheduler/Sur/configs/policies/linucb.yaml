@@ -1,0 +1,40 @@
+# Plain LinUCB (Li et al., 2010) — owner: Sur
+# The "no forgetting" ablation: identical to sw_linucb.yaml except that it has
+# no window (tests/test_configs.py checks that every shared section matches).
+# Values are (default) starting choices. Change them here, never in Python.
+
+policy: linucb
+
+alpha: 1.0            # exploration strength: score = θᵀx + alpha · √(xᵀA⁻¹x)
+lambda: 1.0           # ridge prior: each node's A starts as lambda · I   (brief §6.4: λ = 1)
+seed: 0               # only breaks exact score ties; the experiment runner sets one seed per run
+max_pending: 100000   # decisions waiting for feedback; the oldest is dropped beyond this
+
+features:             # context vector — see context_vector/features.py
+  use_context: true   # false = "no context" ablation: x = [1.0]
+  slo_classes: [interactive, batch]   # one 0/1 flag each. "interactive" is in the API draft;
+                                      # "batch" is a placeholder until the class list is frozen
+  ranges:             # min-max scaling to 0..1; values outside are clipped.
+                      # (default) placeholders: replace with Parikshit's telemetry ranges once frozen
+    input_tokens:           {min: 0, max: 8192}
+    expected_output_tokens: {min: 0, max: 2048}
+    ttft_slo_ms:            {min: 0, max: 1000}
+    rtt_ms:                 {min: 0, max: 300}
+    queue_len:              {min: 0, max: 64}
+    energy_price_usd_kwh:   {min: 0.0, max: 0.50}
+    gpu_price_usd_hr:       {min: 0.0, max: 5.00}
+    temperature_c:          {min: 20, max: 100}
+
+reward:               # r = w1·[SLO met] − w2·latency − w3·energy cost − w4·thermal stress
+  weights:            # (default) the SLO term dominates: 1.0 > 0.2 + 0.1 + 0.1
+    slo_met: 1.0
+    latency: 0.2
+    energy_cost: 0.1
+    thermal_stress: 0.1
+  latency_metric: ttft_ms         # ttft_ms (what the SLO measures) or e2e_ms
+  latency_max_ms: 1000            # latency term = latency / this, clipped to 0..1 (4 × the 250 ms SLO)
+  energy_cost_source: energy_usd  # energy_usd = energy_kwh × node electricity price at decision time;
+                                  # cost_usd = the outcome's total cost (energy + GPU rent)
+  energy_cost_max_usd: 0.0002     # energy term = cost / this, clipped to 0..1
+  thermal_safe_c: 60.0            # thermal stress is 0 at or below this temperature ...
+  thermal_limit_c: 85.0           # ... and 1 at this one. Keep equal to Jyotir's temperature_limit_c

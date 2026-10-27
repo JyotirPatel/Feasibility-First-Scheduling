@@ -1,0 +1,62 @@
+# Window-size sweep and exploration (alpha) check — owner: Sur
+# Runs on the stand-in simulator in standins/ until Parikshit's simulator exists;
+# the same runner will be pointed at the real one. Every number here is a
+# setting, so it lives in this file rather than in run_sweep.py.
+
+seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]   # brief §8: at least 10 seeds; the same seeds for every policy
+scenarios:
+  - s1_stable
+  - s2_traffic_burst
+  - s3_price_shift
+  - s4_thermal_throttle
+  - s5_network_degradation
+  - s6_outage_recovery
+
+window_sweep:
+  sizes: [200, 500, 1000, 2000, 5000]   # brief §6.5 default sweep
+  extended_sizes: [10000, 20000]        # extra points: W counts outcomes, so at 240 requests/s a global
+                                        # window of W = 5000 holds only ~21 s of history
+  modes: [per_node, global]             # open team question (brief §15), so both are run
+  include_plain_linucb: true            # the "no forgetting" reference on the same runs
+
+alpha_check:                            # exploration-parameter check
+  alphas: [0.1, 0.5, 1.0, 2.0]
+  window: {size: 1000, mode: per_node}  # the default window in configs/policies/sw_linucb.yaml
+  scenarios: [s1_stable, s2_traffic_burst, s6_outage_recovery]   # S1 shows the cost of exploring
+
+baselines:                              # sanity reference only; Riya owns the main comparison
+  - RoundRobin
+  - MinRTT
+  - LeastLoad
+  - LowestEnergy
+  - StaticWeighted
+  - PowerOfTwo
+
+checkpoints:                            # save the learned state of these runs (deliverable: checkpoints)
+  scenarios: [s1_stable, s6_outage_recovery]
+  seed: 0
+
+metrics:                                # the frozen adaptation-time definition (work distribution §6)
+  bin_s: 1.0                            # goodput in 1-second bins ...
+  smooth_s: 5.0                         # ... smoothed with a 5-second moving average
+  steady_from_s: 60                     # G* = mean goodput from t0 + 60 s ...
+  steady_to_s: 120                      # ... to t0 + 120 s
+  fraction: 0.9                         # recovered = G(t) >= 0.9 · G* ...
+  hold_s: 10                            # ... for 10 s in a row
+  dip_until_s: 120                      # deepest dip searched in [t0, t0 + 120 s)
+  before_s: 100                         # goodput_before = mean goodput in [t0 - 100 s, t0)
+  rush_share: 0.5                       # S6: a "rush" second = the returned node got >= 50% of requests
+  abandoned_below_share: 0.01           # S6: node abandoned = < 1% of requests after its warm-up ends
+  bootstrap:                            # 95% bootstrap confidence intervals over seeds
+    resamples: 2000
+    confidence: 0.95
+    seed: 0
+
+quick:                                  # the --quick smoke run (a small subset of the above)
+  seeds: 2                              # the first 2 seeds
+  scenarios: [s1_stable, s2_traffic_burst, s6_outage_recovery]
+  sizes: [200, 1000]
+  alphas: [0.1, 0.5]
+  baselines: [RoundRobin, MinRTT]
+
+workers: 0                              # parallel processes; 0 = number of CPU cores minus 2

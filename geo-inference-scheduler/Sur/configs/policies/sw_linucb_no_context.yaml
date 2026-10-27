@@ -1,0 +1,43 @@
+# "No context" ablation (brief §7 b) — owner: Sur
+# Sliding-window LinUCB that ignores the request and the telemetry: the context
+# vector is just [1.0], so each node gets one average reward plus one
+# uncertainty bonus (a plain, non-contextual bandit). Identical to
+# sw_linucb.yaml except features.use_context (tests/test_configs.py checks this).
+
+policy: sw_linucb
+
+alpha: 1.0
+lambda: 1.0
+seed: 0
+max_pending: 100000
+
+window:
+  size: 1000
+  mode: per_node
+  rebuild_every: 1000
+
+features:
+  use_context: false  # the only difference from sw_linucb.yaml
+  slo_classes: [interactive, batch]
+  ranges:
+    input_tokens:           {min: 0, max: 8192}
+    expected_output_tokens: {min: 0, max: 2048}
+    ttft_slo_ms:            {min: 0, max: 1000}
+    rtt_ms:                 {min: 0, max: 300}
+    queue_len:              {min: 0, max: 64}
+    energy_price_usd_kwh:   {min: 0.0, max: 0.50}
+    gpu_price_usd_hr:       {min: 0.0, max: 5.00}
+    temperature_c:          {min: 20, max: 100}
+
+reward:
+  weights:
+    slo_met: 1.0
+    latency: 0.2
+    energy_cost: 0.1
+    thermal_stress: 0.1
+  latency_metric: ttft_ms
+  latency_max_ms: 1000
+  energy_cost_source: energy_usd
+  energy_cost_max_usd: 0.0002
+  thermal_safe_c: 60.0
+  thermal_limit_c: 85.0

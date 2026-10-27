@@ -1,0 +1,2 @@
+# Local tool caches (ruff.toml lives in this folder)
+.ruff_cache/

@@ -1,0 +1,3 @@
+# Full decision logs are large; they can be regenerated with --save-logs.
+results/raw/
+results_quick/

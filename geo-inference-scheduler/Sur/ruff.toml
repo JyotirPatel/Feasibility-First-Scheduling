@@ -1,0 +1,9 @@
+# Lint settings for Sur's folder (brief §12: ruff for lint + format).
+# `src` tells ruff which top-level packages are first-party, so the import
+# order it expects is the same wherever ruff is run from.
+line-length = 120
+target-version = "py311"
+src = [".", "tests", "../Jyotir"]
+
+[lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "I"]
