@@ -1,6 +1,6 @@
 # Method: choosing a node with a learning policy
 
-*Draft by Sur for the report. Riya merges it into the full report. Citation keys refer to `../citations/references.bib`. Numbers marked "stand-in" come from the window sweep on the stand-in simulator and must be refreshed after the re-run on the project simulator.*
+*Draft by Sur for the report. Riya merges it into the full report. Citation keys refer to `../citations/references.bib`. The numbers come from the window sweep on the project simulator, run through the project's router and feasibility filter (`../window_sweep/RESULTS.md`).*
 
 ## Where the policy sits in the loop
 
@@ -73,22 +73,37 @@ Repeated subtraction accumulates rounding error, so after every 1000 removals (a
 
 ## Parameters
 
-λ = 1, as specified in the brief. Window size, window mode and α are chosen with the window sweep (window_sweep/RESULTS.md):
+λ = 1, as specified in the brief. Window size, window mode and α were chosen with a window sweep on the project simulator, with every request going through the project's router and feasibility filter (window_sweep/RESULTS.md). It covered:
 - W ∈ {200, 500, 1000, 2000, 5000}, plus 10000 and 20000;
 - both window modes;
 - α ∈ {0.1, 0.5, 1, 2};
-- six scenarios × 10 seeds, with 95 % bootstrap confidence intervals.
+- six scenarios × 10 seeds (1,350 runs), with 95 % bootstrap confidence intervals.
 
-On the stand-in simulator (*preliminary*), the sweep showed:
+The sweep showed the following.
 
-- **Forgetting costs goodput while nothing changes.** In the stable scenario, a per-node window of W = 1000 met the SLO for 94.6 % of requests, against 98.6 % for plain LinUCB. The gap closed as W grew: 97.6 % at W = 5000 and 98.5 % at W = 20000.
-- **No sliding-window setting beat plain LinUCB on mean goodput, in any of the six scenarios.** A likely reason is that every change in these scenarios is visible in the context features, so a contextual model reacts without needing to forget.
-- **One adaptation-time result favoured a window.** After the traffic burst, a per-node window of W = 5000 regained 90 % of the new steady goodput in 4.6 s [1.3, 8.1], against 12.1 s [8.5, 15.5] for plain LinUCB, though with slightly lower goodput during the burst. No other scenario showed a window adapting faster.
-- **A per-node window can abandon a node that recovers.** When the S6 node came back, the outcomes of the requests lost in its outage were the newest evidence in its window, and they made its estimate erratic. Windows of W ≤ 2000 then gave it under 1 % of requests in 3–7 of 10 seeds (W = 5000: 1 of 10). A short adaptation time measured after its return can therefore reflect this abandonment rather than faster recovery.
-- **Global windows were worse than per-node windows at every W ≥ 1000, in every scenario.** They also collapsed when the S6 node returned: goodput fell to 23–32 requests/s on average, against 78 for plain LinUCB. The forgotten node looked new to the policy, so its exploration bonus was large, and it attracted a burst of requests while still warming up. A bug in the feasibility filter, which let the warming node accept requests after its memory was full, made that burst much worse; it must be fixed before the final runs.
-- **No α was best on every measure.** α = 0.1 and 0.5 gave 0.9–1.4 % more goodput while stable. After the burst α = 1 adapted fastest, and after the outage α = 0.5 did, but all these confidence intervals overlap. Smaller α abandoned the returned S6 node more often.
+- **The policy learns which sites can meet the SLO.** It sends about 98 % of requests to the two H100 sites:
+  - interactive requests almost all to San Jose, and batch requests mostly to New York;
+  - the A100 sites, which cannot start most interactive requests within 250 ms, get under 2 %.
 
-We therefore use a per-node window and α = 1. W stays at 1000 until the sweep is repeated on the project simulator. On the stand-in, the best window within the brief's range was W = 5000: its goodput was within 1.1 % of plain LinUCB's in every scenario, and it adapted faster than plain LinUCB after the burst. Because no window beat plain LinUCB overall, the report should not claim that forgetting helps unless the re-run shows it.
+  In the stable scenario, plain LinUCB and every per-node window meet the TTFT SLO for 90.7 % of requests (72.2 SLO-met requests/s). The six baselines reach 68–77 %.
+- **A per-node window costs nothing while nothing changes; a global window does.**
+  - In the stable scenario, every per-node window from W = 200 to 20000 matches plain LinUCB.
+  - A global window of W = 200 meets the SLO for only 77.3 % of requests. It forgets the rarely used A100 sites within seconds, their exploration bonus grows back, and the policy keeps re-trying them.
+- **Forgetting helps after a load change.**
+  - After the traffic burst, a per-node window of W = 500 regained 90 % of the new steady goodput in 20.4 s [17.8, 22.2], against 33.6 s [24.9, 41.8] for plain LinUCB. Its mean goodput was also higher: 91.8 [91.4, 92.2] against 90.6 [89.8, 91.3] requests/s.
+  - The reason: when the burst fills the preferred sites, the outcomes from before it age out of the window, so the policy notices sooner that those sites have become slow.
+  - Load-balancing baselines adapt faster still (least-load: 4.4 s), because they never concentrate traffic, but over the whole run they deliver less goodput (82.7 requests/s).
+- **Very short windows abandon a node that recovers.**
+  - After the outage node returned, a per-node window of W = 200 recovered fastest (3.2 s [1.5, 4.9]), but it stopped using the node in 6 of 10 seeds. A short adaptation time after a return can therefore reflect abandonment rather than faster recovery.
+  - W = 500 never abandoned the node and rushed onto it for under 1 s on average.
+- **Prices do not change the routing.** With the weights 1.0 / 0.2 / 0.1 / 0.1, the SLO term dominates. In the price-shift scenario, the share of traffic to the California sites stays at 72–73 %, although their prices rise from about $0 to $0.05/kWh.
+- **α = 1 is the most robust setting.**
+  - α = 0.1 and 0.5 raise stable-scenario goodput by 0.3 %, but slow the adaptation after the burst to 52 s and 38 s.
+  - α = 2 abandoned the returned node in 3 of 10 seeds.
+
+We therefore use a per-node window of W = 500 with α = 1. It is the only window that beat plain LinUCB on both burst measures with non-overlapping confidence intervals, and it costs nothing in the other scenarios.
+
+The energy term's scale (a maximum of $0.00001 per request) is set from the simulator: it is about the 99th percentile of a request's energy cost there.
 
 All parameters are stored in configuration files; none are fixed in code. The three policy files (sliding window, plain, no context) differ only in the ablated component, which a test enforces.
 

@@ -1,8 +1,8 @@
 """
 Sweep diagnostics — owner: Sur
 
-Per-seed checks behind the statements in RESULTS.md. By default it shows how a
-policy treats the node that went down and came back in S6:
+Per-seed checks behind the statements in RESULTS_standin.md, on the stand-in simulator.
+By default it shows how a policy treats the node that went down and came back in S6:
 
   rush (s)        seconds from its return in which it got >= half of all requests
   peak queue      the largest queue the router saw at that node during [return, return + 30 s)

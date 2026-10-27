@@ -249,7 +249,8 @@ def test_accepts_the_exact_feedback_payload_from_the_brief():
     }
     policy.update(request, node, feedback)
     assert policy.stats["updates"] == 1
-    assert policy.last_reward == pytest.approx(1.0 - 0.2 * 0.184 - 0.1 * 0.22 - 0.1 * 0.44)
+    # the brief's example energy (0.0004 kWh at $0.11 = $0.000044) is above the $0.00001 scale: that term is 1
+    assert policy.last_reward == pytest.approx(1.0 - 0.2 * 0.184 - 0.1 * 1.0 - 0.1 * 0.44)
 
 
 # ── learning and reproducibility ─────────────────────────────────────────────

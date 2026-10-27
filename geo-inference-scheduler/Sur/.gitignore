@@ -1,2 +1,5 @@
 # Local tool caches (ruff.toml lives in this folder)
 .ruff_cache/
+# Sweep outputs that are not part of the result bundle
+window_sweep/results_quick/
+window_sweep/results*/raw/

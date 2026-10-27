@@ -12,7 +12,7 @@ seed: 0
 max_pending: 100000
 
 window:
-  size: 1000
+  size: 500
   mode: per_node
   rebuild_every: 1000
 
@@ -38,6 +38,6 @@ reward:
   latency_metric: ttft_ms
   latency_max_ms: 1000
   energy_cost_source: energy_usd
-  energy_cost_max_usd: 0.0002
+  energy_cost_max_usd: 1.0e-5
   thermal_safe_c: 60.0
   thermal_limit_c: 85.0

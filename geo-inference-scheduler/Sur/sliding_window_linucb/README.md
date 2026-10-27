@@ -23,12 +23,11 @@ Which mode to use is an open team question (brief §15). Both are implemented an
 
 > LinUCB's uncertainty about a node, its matrix A, only changes when that node's own outcomes arrive. With a **per-node** window, a node the policy stopped picking keeps its old outcomes indefinitely, so it may never be tried again, even after it gets better; in that test it never was. With a **global** window those outcomes age out, the node's exploration bonus grows back, and it is retried.
 
-The window sweep shows the same effect in S6, a node coming back after an outage.
-- Per-node windows of W ≤ 2000 sent the recovered node under 1% of requests after its warm-up in 3–7 of 10 seeds (W = 5000: 1 of 10).
-- The requests lost in the outage were the newest outcomes in its window and made the model's estimate for it erratic. At W = 200 and W = 1000 the node was dropped in exactly the seeds where that estimate was negative.
-- Global windows always used it again, but rushed most requests onto it for 5–7 s (in 69 of 70 runs) while it was still warming up.
+The window sweep on Parikshit's simulator shows the same effect in S6, a node coming back after an outage.
+- A per-node window of W = 200 sent the recovered node under 1% of requests after its warm-up in 6 of 10 seeds. Windows of W ≥ 500 never abandoned it.
+- Global windows always used it again, but recovered more slowly. They rushed onto it for 2–5 s on average, against under 1 s for per-node W = 500.
 
-See `../window_sweep/RESULTS.md`, findings 4 and 5, for the numbers.
+The same sweep chose the shipped default, a per-node window with W = 500. See `../window_sweep/RESULTS.md` (findings 2–4, Tables B1 and B2) for the numbers.
 
 A node whose window empties goes back exactly to `A = λI, b = 0`. Outcomes enter the window in the order their feedback arrives. Checkpoints also save the window contents, and on load the model is rebuilt from them and checked against the saved A and b.
 

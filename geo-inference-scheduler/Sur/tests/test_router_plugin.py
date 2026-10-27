@@ -31,7 +31,7 @@ def test_router_policies_are_sur_policies_and_krupesh_policies():
     assert isinstance(plain, Policy) and isinstance(plain, LinUCB) and (plain.name, plain.seed) == ("linucb", 2)
     assert isinstance(windowed, Policy) and isinstance(windowed, SlidingWindowLinUCB)
     assert (windowed.name, windowed.seed) == ("sw_linucb", 3)
-    assert (windowed.window_mode, windowed.window_size) == ("per_node", 1000)
+    assert (windowed.window_mode, windowed.window_size) == ("per_node", 500)
 
 
 def test_register_resolves_every_name_through_krupeshs_registry(monkeypatch):

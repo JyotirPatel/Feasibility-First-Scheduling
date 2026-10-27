@@ -35,6 +35,7 @@ reward:               # r = w1·[SLO met] − w2·latency − w3·energy cost �
   latency_max_ms: 1000            # latency term = latency / this, clipped to 0..1 (4 × the 250 ms SLO)
   energy_cost_source: energy_usd  # energy_usd = energy_kwh × node electricity price at decision time;
                                   # cost_usd = the outcome's total cost (energy + GPU rent)
-  energy_cost_max_usd: 0.0002     # energy term = cost / this, clipped to 0..1
+  energy_cost_max_usd: 1.0e-5     # energy term = cost / this, clipped to 0..1. About the 99th percentile of a
+                                  # request's energy cost on Parikshit's simulator in S1-S3 ($8.1e-6): 0.4 % clipped
   thermal_safe_c: 60.0            # thermal stress is 0 at or below this temperature ...
   thermal_limit_c: 85.0           # ... and 1 at this one. Keep equal to Jyotir's temperature_limit_c

@@ -1,4 +1,4 @@
-"""The checkpoint files shipped in checkpoints/standin/ are valid and load into their policies."""
+"""The checkpoint files shipped in checkpoints/ (simulator/ and standin/) are valid and load into their policies."""
 
 import glob
 import json
@@ -11,7 +11,7 @@ from linucb import LinUCB
 from sliding_window_linucb import SlidingWindowLinUCB
 from sur_factories import SUR_DIR, make_node, make_request
 
-FILES = sorted(glob.glob(os.path.join(SUR_DIR, "checkpoints", "standin", "*.npz")))
+FILES = sorted(glob.glob(os.path.join(SUR_DIR, "checkpoints", "*", "*.npz")))
 POLICIES = {"linucb": LinUCB, "sw_linucb": SlidingWindowLinUCB}
 
 

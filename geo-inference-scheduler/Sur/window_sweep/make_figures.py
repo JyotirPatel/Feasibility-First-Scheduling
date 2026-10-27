@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import csv
 import gzip
+import json
 import math
 import os
 from collections import defaultdict
@@ -37,6 +38,20 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator  # noqa: E402
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def change_times_of(results_dir: str) -> tuple[float, float]:
+    """t0 and the S6 return, from the bundle's manifest (older stand-in bundles: from the stand-in's config)."""
+    with open(os.path.join(results_dir, "manifest.json")) as f:
+        recorded = json.load(f)
+    if "t0_s" in recorded:
+        return recorded["t0_s"], recorded["s6_return_s"]
+    import yaml
+
+    with open(os.path.join(os.path.dirname(_HERE), "standins", "toy_cluster.yaml")) as f:
+        cluster = yaml.safe_load(f)
+    return cluster["t0_s"], cluster["scenarios"]["s6_outage_recovery"]["return_s"]
+
 
 # Light-mode chart tokens (dataviz reference palette).
 SURFACE, INK, INK_2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
@@ -373,14 +388,14 @@ def main(argv: list[str] | None = None) -> int:
     default_sizes = sweep["window_sweep"]["sizes"]
     extended = sweep["window_sweep"]["extended_sizes"]
     windows = [w for w in sw_windows if w in default_sizes + extended]
-    shown = [default_sizes[0], default_sizes[len(default_sizes) // 2], default_sizes[-1]]
+    with open(os.path.join(os.path.dirname(_HERE), "configs", "policies", "sw_linucb.yaml")) as f:
+        default_window = yaml.safe_load(f)["window"]["size"]  # the shipped default is always shown
+    shown = sorted({default_sizes[0], default_window, default_sizes[-1]})
 
-    with open(os.path.join(os.path.dirname(_HERE), "standins", "toy_cluster.yaml")) as f:
-        cluster = yaml.safe_load(f)
-    t0 = cluster["t0_s"]
+    t0, s6_return = change_times_of(args.results)
     scenarios = [s for s in SCENARIO_NAME if any(r["scenario"] == s for r in summary)]
     for s in scenarios:
-        t_return = cluster["scenarios"]["s6_outage_recovery"]["return_s"] if s == "s6_outage_recovery" else None
+        t_return = s6_return if s == "s6_outage_recovery" else None
         goodput_figure(summary, curves, s, shown, t0, t_return, os.path.join(out_dir, f"goodput_{s}.png"))
 
     panels = [(s, "") for s in scenarios] + (

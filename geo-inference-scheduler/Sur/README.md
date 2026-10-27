@@ -115,10 +115,10 @@ Every task above is implemented and tested. Each folder has its own README with 
 | 2. Sliding-window LinUCB | `sliding_window_linucb/sw_linucb.py` | done, with **both** window readings (`per_node` and `global`; open question, brief §15) |
 | 3. Context vector | `context_vector/features.py` | done: the brief §6.2 features (13 numbers, because the SLO class is one 0/1 flag per class) plus a bias term, scaled to 0..1, and a "no context" switch for the ablation |
 | 4. Reward | `reward/reward.py` | done: `w1·[SLO met] − w2·latency − w3·energy cost − w4·thermal stress`, terms scaled to 0..1, weights in config |
-| 5. Window-size sweep + α check | `window_sweep/` | done on the stand-in simulator; results in `window_sweep/RESULTS.md` (preliminary until Parikshit's simulator exists) |
+| 5. Window-size sweep + α check | `window_sweep/` | done on Parikshit's simulator through Krupesh's router (1,350 runs); results in `window_sweep/RESULTS.md`; it chose the default, a per-node window with W = 500 and α = 1 |
 | 6. Citations | `citations/` | done: BibTeX and plain text, checked against Crossref (the publishers' records) or the official proceedings pages |
 | Parameter files | `configs/policies/` | `linucb.yaml`, `sw_linucb.yaml`, `sw_linucb_no_context.yaml`; no numbers in the Python code |
-| Checkpoints | `checkpoints/` | save/load in both policies (`.npz`, no pickle); stand-in checkpoints from the sweep |
+| Checkpoints | `checkpoints/` | save/load in both policies (`.npz`, no pickle); checkpoints of the default policies from the sweep on Parikshit's simulator (`checkpoints/simulator/`) |
 | Method section draft | `report/method_section.md` | draft for Riya to merge into the report |
 | Router plug-in | `router_plugin/` | done: the policies as subclasses of Krupesh's `Policy`, `reward_fn` in his `RewardFn` shape, registry names, and his handbook's end-to-end acceptance check (`router_plugin/check_router.py`) |
 | Tests | `tests/` | every module tested (`python3 -m pytest geo-inference-scheduler/Sur/tests -q`) |
@@ -148,8 +148,13 @@ engine = RoutingEngine(policy=build_policy("sur:sw_linucb", seed=seed), filter_f
   - Moving the folder up one level fixes it. On a copy, 30 pass and 1 is skipped; the 4 others need `pyarrow`.
   - The plug-in finds your code in either place.
 - **Your handbook's open decisions owned by Sur (§7).**
-  - **#3, window counted globally or per node:** Sur's default is **per node**. In the sweep, per-node windows had higher mean goodput than global windows at every W ≥ 1000, in every scenario. Global windows also rushed onto the returning S6 node in 69 of 70 runs (`window_sweep/RESULTS.md`).
-  - **#4, reward weights:** Sur's are 1.0 / 0.2 / 0.1 / 0.1 (`configs/policies/sw_linucb.yaml`), so the SLO term dominates. Scales: latency 1,000 ms, energy cost $0.0002, thermal 60 → 85 °C. The 1.0 / 0.3 / 0.2 / 0.1 in the handbook are your mock reward's placeholders.
+  - **#3, window counted globally or per node:** Sur's default is **per node**, with W = 500 (`window_sweep/RESULTS.md`, on Parikshit's simulator through your router).
+    - In S1, global windows lose goodput at every W ≤ 2000 (61.6 req/s at W = 200, against 72.2 for every per-node window).
+    - Global windows also recover more slowly after the S6 node returns.
+  - **#4, reward weights:** Sur's are 1.0 / 0.2 / 0.1 / 0.1 (`configs/policies/sw_linucb.yaml`), so the SLO term dominates.
+    - Scales: latency 1,000 ms; energy cost $0.00001, about the 99th percentile of a request's energy cost on Parikshit's simulator (the earlier $0.0002 left the energy term near 0 there); thermal 60 → 85 °C.
+    - With these weights the policy ignores prices: S3 does not change its routing (`window_sweep/RESULTS.md`, finding 5).
+    - The 1.0 / 0.3 / 0.2 / 0.1 in the handbook are your mock reward's placeholders.
 
 ### For Riya (experiments)
 
@@ -160,30 +165,35 @@ engine = RoutingEngine(policy=build_policy("sur:sw_linucb", seed=seed), filter_f
   - `linucb` is `LinUCB` with `linucb.yaml`.
   - `sw_linucb` is `SlidingWindowLinUCB` with `sw_linucb.yaml`. The "no context" ablation is the same class with `sw_linucb_no_context.yaml`.
   - Your planner (`Riya/experiment_runner/config.json`) currently calls the second one `sliding_window_linucb`, and it does not list the "no context" ablation yet.
-- **Goodput binning:** the stand-in metric (`standins/adaptation.py`) counts a request in the second it arrived. `Riya/metrics/calculate_metrics.py` counts SLO successes by completion time. Agree on one before the adaptation-time metric is written.
-- **Window sweep:** `window_sweep/results/summary.csv`, with means and 95% bootstrap CIs over 10 seeds; the tables in `window_sweep/RESULTS.md` (generated from it by `window_sweep/make_tables.py`); and figures in `window_sweep/results/figures/`.
+- **Goodput binning:** the sweep's metric (`standins/adaptation.py`) counts a request in the second it arrived. Your runner counts SLO successes by completion time. Agree on one before the adaptation-time metric is final.
+- **Window sweep:** run on Parikshit's simulator through Krupesh's router, the same pipeline as your runner.
+  - `window_sweep/results/summary.csv` has the means and 95% bootstrap CIs over 10 seeds.
+  - The tables in `window_sweep/RESULTS.md` are generated from it by `window_sweep/make_tables.py`.
+  - The figures are in `window_sweep/results/figures/`.
 
 ### Things found while building this (to discuss with the team)
 
-1. **Bug in Jyotir's filter.** A `warming` node skips the model, memory, power and temperature checks (`filter.py`, rule 1 returns early).
-   - In the S6 sweep this let most policies route requests to a warming node whose KV cache was ≥ 90% full: 234,039 times in total.
-   - That includes plain LinUCB, min-RTT, round-robin, static-weighted and every sliding-window setting except per-node W = 200. Least-load, power-of-two and lowest-energy never did.
-   - It is also the main cause of the S6 slowdowns. With the bug fixed in memory (the what-if `window_sweep/diagnostics.py --fixed-filter`), plain LinUCB's lowest goodput after the node's return rises from 77.7 to 211.4 req/s on average.
-   - `tests/test_toy_cluster.py::test_s6_warming_node_respects_hard_rules` records it as an expected failure.
-2. **Per-node vs global window.** With a per-node window, a node the policy stopped picking may never be tried again. In S6 this really happened.
-   - Per-node windows of W ≤ 2000 sent the recovered node under 1% of requests after its warm-up in 3–7 of 10 seeds (W = 5000: 1 of 10).
-   - The requests lost in its outage were the newest outcomes in its window, and they made the model's estimate for it erratic. At W = 200 and W = 1000 the node was dropped in exactly the seeds where that estimate was negative.
-   - A global window always used it again, but rushed most traffic onto it for 5–7 s (in 69 of 70 runs) while it was still warming up.
-   - See `window_sweep/RESULTS.md`, findings 4 and 5.
-3. **The adaptation-time metric.**
-   - At low request rates, normal random variation alone can break the "≥ 90% of G* for 10 s" rule. At 25 requests/s, S1 (where nothing changes) showed a non-zero time in 2 of 5 seeds for plain LinUCB and in 3 of 5 for static-weighted.
-   - A noisy policy gets noise times too. Even at 240 requests/s, the windows with W ≤ 5000 and every global window score up to 6.5 s on average in S1.
-   - The rule stops at the first 10 s above 0.9·G\*, so a later dip does not count. Plain LinUCB scores 0 s in every S4 and S5 seed although its goodput dips afterwards.
-   - In S2 it is all-or-nothing: 1–2 s or 8–22 s per seed for plain LinUCB and the two fastest windows.
-   - For S6, measuring only from t0 = 200 s misses the node's return at 400 s.
-   - A short adaptation time can also mean the policy simply stopped using the recovered node, so show its traffic share next to the time.
-4. **Rush onto a fresh node.** When a node comes back warming, the model has never seen it in that state, so its exploration bonus is large. Any policy that still uses it can then send it most requests for several seconds, until results for the queued requests come back.
-   - Plain LinUCB did this for 6–7 s in 7 of 10 seeds, and global windows in 69 of their 70 S6 runs.
-   - The stand-in's router already sees fresh queue lengths, so stale telemetry is not the cause.
-   - Fixing the filter bug (item 1) cuts the rush to at most 2 s.
-5. **One faster-adaptation result.** In the S2 traffic burst, per-node W = 5000 adapted faster than plain LinUCB (4.6 s [1.3, 8.1] against 12.1 s [8.5, 15.5]), but with lower goodput during the burst. In no other scenario was a window faster (RESULTS.md, finding 3).
+These come from the window sweep on Parikshit's simulator through Krupesh's router (`window_sweep/RESULTS.md`). The earlier stand-in findings are in `window_sweep/RESULTS_standin.md`.
+
+1. **Forgetting helps after the burst, and costs nothing elsewhere.** This reverses the stand-in result.
+   - **S2.** A per-node window of W = 500 adapts in 20.4 s [17.8, 22.2], against 33.6 s [24.9, 41.8] for plain LinUCB, with higher mean goodput (91.8 against 90.6 req/s).
+   - **Elsewhere.** In S1, S3, S4 and S5 every per-node window matches plain LinUCB.
+   - **Default.** This is why the shipped default is now a per-node window with W = 500 (it was 1000).
+2. **Very short per-node windows abandon a node that comes back.**
+   - With W = 200, the S6 node got under 1% of requests after its warm-up in 6 of 10 seeds. Its short recovery time (3.2 s) partly reflects that.
+   - W ≥ 500 never abandoned it.
+   - When reporting a recovery time, show the node's traffic share next to it.
+3. **The policy ignores prices with the current weights (1.0 / 0.2 / 0.1 / 0.1).**
+   - In S3, the share of traffic to California stays at 72–73 % after California becomes the expensive region.
+   - Price-aware routing needs a larger energy weight. That is a team decision (handbook §7, #4) to make before the final runs.
+4. **The router's view is up to 1 s old.** In S2 and S4 the policy (and every baseline) reaches nodes that have just crossed the power or temperature limit, as Parikshit's true-state check shows.
+   - Per-node W = 500: about 3,200 such requests per S2 run and 142 per S4 run.
+   - Counting the router's own placements against power and temperature, as it does for load, would cut this.
+5. **Jyotir's filter bug is still there, but it does not affect these runs.**
+   - The bug: a `warming` node skips the memory, power and temperature checks (`filter.py`, rule 1 returns early).
+   - On Parikshit's simulator the warming node never nears those limits, so none of the S6 true-state violations involve it.
+   - `tests/test_toy_cluster.py::test_s6_warming_node_respects_hard_rules` still records it as an expected failure, on the stand-in.
+6. **The adaptation-time metric.**
+   - **Noise floor.** In S1, where nothing changes, plain LinUCB and W = 500 show a non-zero time in 4 of 10 seeds (4–12 s), because the interactive arrivals are bursty. Read every scenario's time against that floor.
+   - **S6** needs the second anchor at the node's return (400 s), as the sweep does.
+   - **Binning.** The sweep bins requests by arrival, and Riya's runner by completion; the team should fix one.

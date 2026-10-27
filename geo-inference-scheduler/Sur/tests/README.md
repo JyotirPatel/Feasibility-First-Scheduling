@@ -18,7 +18,8 @@ python3 -m pytest geo-inference-scheduler/Sur/tests -q
 | `test_adaptation.py` | goodput and the frozen adaptation-time definition on hand-made curves |
 | `test_toy_cluster.py` | stand-in simulator: workload, scenarios, one feedback per decision, safety audit, determinism |
 | `test_sweep.py` | sweep jobs, per-run metrics (including the S6 returned-node metrics), bootstrap CIs and their stability |
-| `test_shipped_checkpoints.py` | every file in `checkpoints/standin/` loads into its policy and scores |
+| `test_parikshit_backend.py` | the sweep on Parikshit's simulator: scenario times, router-side policies with the job's settings, rejected requests, and one full S6 run through Krupesh's router |
+| `test_shipped_checkpoints.py` | every file in `checkpoints/simulator/` and `checkpoints/standin/` loads into its policy and scores |
 | `test_reference_checks.py` | independent re-implementations compared with the production code on thousands of random inputs (context vector, reward, sliding window after every outcome, goodput, adaptation time) |
 | `test_diagnostics.py` | the diagnostics script (S6 rush, queue, share, counterfactual; S1 load and metric noise), that watching a run does not change it, that Jyotir's baselines work in every check, and the `--fixed-filter` what-if |
 | `test_figures_and_tables.py` | the figure and table scripts, and that every table in `window_sweep/RESULTS.md` equals what `summary.csv` gives |

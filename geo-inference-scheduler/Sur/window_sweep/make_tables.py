@@ -66,6 +66,18 @@ def ci(row: dict, key: str, scale: float = 1.0, digits: int = 1, unit: str = "")
     return f"{v:.{digits}f}{unit} [{lo:.{digits}f}, {hi:.{digits}f}]"
 
 
+def alpha_window(s: dict[tuple[str, str], dict]) -> tuple[str, int]:
+    """(mode, W) of the exploration check: the sliding-window runs with an alpha other than 1."""
+    found = {
+        (r["mode"], int(float(r["window"])))
+        for r in s.values()
+        if r["family"] == "sw_linucb" and float(r["alpha"]) != 1.0
+    }
+    if len(found) != 1:
+        raise ValueError(f"expected one exploration-check window, found {sorted(found)}")
+    return found.pop()
+
+
 def recovered(row: dict, prefix: str = "") -> str:
     return f"{row[prefix + 'recovered_runs']}/{row['seeds']}"
 
@@ -140,13 +152,12 @@ def render(s: dict[tuple[str, str], dict]) -> dict[str, str]:
     # C — S2 traffic burst
     picks = [
         (PLAIN, "plain LinUCB"),
-        (sw("per_node", 1000), "per-node W = 1000"),
-        (sw("per_node", 2000), "per-node W = 2000"),
-        (sw("per_node", 5000), "per-node W = 5000"),
-        (sw("global", 200), "global W = 200"),
-        (sw("global", 20000), "global W = 20000 *(extra)*"),
+        *((sw("per_node", w), f"per-node W = {w}") for w in BRIEF_SIZES),
+        (sw("global", 1000), "global W = 1000"),
+        (sw("global", 5000), "global W = 5000"),
+        ("baseline:LeastLoad", "least-load"),
+        ("baseline:RoundRobin", "round-robin"),
         ("baseline:StaticWeighted", "static-weighted"),
-        ("baseline:MinRTT", "min-RTT"),
     ]
     rows = []
     for label, name in picks:
@@ -166,10 +177,11 @@ def render(s: dict[tuple[str, str], dict]) -> dict[str, str]:
         rows,
     )
 
-    # D — exploration check (per-node W = 1000)
+    # D — exploration check, at the window the sweep ran it with
+    mode, window = alpha_window(s)
     rows = []
     for a in ("0.1", "0.5", "1", "2"):
-        label = sw("per_node", 1000, a)
+        label = sw(mode, window, a)
         s1, s2, s6 = (s[label, sc] for sc in ("s1_stable", "s2_traffic_burst", "s6_outage_recovery"))
         rows.append(
             [
@@ -181,7 +193,8 @@ def render(s: dict[tuple[str, str], dict]) -> dict[str, str]:
                 ci(s6, "g_star"),
             ]
         )
-    out["Table D — exploration check (per-node window, W = 1000)"] = table(
+    mode_name = "per-node" if mode == "per_node" else "global"
+    out[f"Table D — exploration check ({mode_name} window, W = {window})"] = table(
         [
             "α",
             "S1 mean goodput (req/s)",
@@ -196,9 +209,8 @@ def render(s: dict[tuple[str, str], dict]) -> dict[str, str]:
     # E — mean goodput in every scenario
     policies = [
         (PLAIN, "plain LinUCB"),
-        (sw("per_node", 2000), "per-node W = 2000"),
-        (sw("per_node", 5000), "per-node W = 5000"),
-        (sw("per_node", 20000), "per-node W = 20000 *(extra)*"),
+        *((sw("per_node", w), f"per-node W = {w}") for w in (200, 500, 1000, 2000, 5000)),
+        (sw("global", 5000), "global W = 5000"),
         *BASELINE_NAMES.items(),
     ]
     rows = [[name] + [ci(s[label, sc], "goodput_mean") for sc in SCENARIOS] for label, name in policies]

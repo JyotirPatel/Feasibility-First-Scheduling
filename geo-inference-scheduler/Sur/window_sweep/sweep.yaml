@@ -1,6 +1,6 @@
 # Window-size sweep and exploration (alpha) check — owner: Sur
-# Runs on the stand-in simulator in standins/ until Parikshit's simulator exists;
-# the same runner will be pointed at the real one. Every number here is a
+# run_sweep.py runs it on Parikshit's simulator through Krupesh's router (or, with
+# --simulator standin, on the earlier stand-in in standins/). Every number here is a
 # setting, so it lives in this file rather than in run_sweep.py.
 
 seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]   # brief §8: at least 10 seeds; the same seeds for every policy
@@ -21,7 +21,7 @@ window_sweep:
 
 alpha_check:                            # exploration-parameter check
   alphas: [0.1, 0.5, 1.0, 2.0]
-  window: {size: 1000, mode: per_node}  # the default window in configs/policies/sw_linucb.yaml
+  window: {size: 500, mode: per_node}   # the default window in configs/policies/sw_linucb.yaml
   scenarios: [s1_stable, s2_traffic_burst, s6_outage_recovery]   # S1 shows the cost of exploring
 
 baselines:                              # sanity reference only; Riya owns the main comparison
@@ -55,7 +55,7 @@ metrics:                                # the frozen adaptation-time definition 
 quick:                                  # the --quick smoke run (a small subset of the above)
   seeds: 2                              # the first 2 seeds
   scenarios: [s1_stable, s2_traffic_burst, s6_outage_recovery]
-  sizes: [200, 1000]
+  sizes: [200, 500]                     # 500 = the default window, which the quick run always includes
   alphas: [0.1, 0.5]
   baselines: [RoundRobin, MinRTT]
 

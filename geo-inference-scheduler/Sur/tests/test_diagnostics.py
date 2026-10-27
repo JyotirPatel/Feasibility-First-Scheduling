@@ -95,9 +95,10 @@ def test_counterfactual_finds_the_lost_requests_in_a_per_node_window():
 
 
 def test_metric_noise_matches_what_results_md_reports():
-    """RESULTS.md: at 25 requests/s, S1 (nothing changes) shows a 6-7 s 'adaptation time' for plain LinUCB in
-    seeds 0 and 4 and 0 s in seeds 1-3; at 240 requests/s it shows 0 s."""
+    """RESULTS_standin.md: at 25 requests/s, S1 (nothing changes) shows a 6-7 s 'adaptation time' for plain LinUCB
+    in seeds 0 and 4 and 0 s in seeds 1-3; at 240 requests/s it shows 0 s. (7 s in both seeds since the reward's
+    energy scale moved to $0.00001.)"""
     from window_sweep.diagnostics import metric_noise
 
-    assert [metric_noise("plain", s, 25.0) for s in range(5)] == [7.0, 0.0, 0.0, 0.0, 6.0]
+    assert [metric_noise("plain", s, 25.0) for s in range(5)] == [7.0, 0.0, 0.0, 0.0, 7.0]
     assert metric_noise("plain", 0, 240.0) == 0.0

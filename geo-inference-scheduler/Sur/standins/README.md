@@ -1,11 +1,11 @@
 # Sur / standins (temporary)
 
-**Owner:** Sur. These are **temporary placeholders** that let Sur test the policies and run the window sweep before Parikshit's simulator and Riya's metrics code exist. This is the same idea as `Jyotir/stubs/`.
+**Owner:** Sur. These are **temporary placeholders** that let Sur test the policies and run the window sweep before Parikshit's simulator and Riya's metrics code existed. This is the same idea as `Jyotir/stubs/`.
 
-| File | Stands in for | Replace with |
+| File | Stands in for | Status |
 |---|---|---|
-| `toy_cluster.py` + `toy_cluster.yaml` | Parikshit's node simulator, node configs and six scenario traces | Parikshit's `simulator/` and event traces |
-| `adaptation.py` | Riya's goodput / adaptation-time metric code | Riya's `metrics/` |
+| `toy_cluster.py` + `toy_cluster.yaml` | Parikshit's node simulator, node configs and six scenario traces | **Replaced for the sweep:** it now runs on Parikshit's `simulator/` through Krupesh's router (`../window_sweep/parikshit_backend.py`). The stand-in stays for fast unit tests, `window_sweep/diagnostics.py` and the earlier results (`window_sweep/RESULTS_standin.md`). |
+| `adaptation.py` | Riya's goodput / adaptation-time metric code | Still in use: Riya's `metrics/` has no adaptation-time code yet. Replace it when hers exists. |
 
 ## toy_cluster
 
@@ -23,7 +23,7 @@ Every request goes through **Jyotir's real feasibility filter**, and only then t
 
 Arrivals depend only on the seed, so every policy gets the same requests. Every routed request gets exactly one feedback, including requests lost in an outage, which come back as failures.
 
-**The numbers are made up to be plausible, not measured.** Anything produced with this simulator is preliminary and must be re-run on Parikshit's simulator.
+**The numbers are made up to be plausible, not measured.** Anything produced with this simulator is preliminary. The window sweep has been re-run on Parikshit's simulator (`window_sweep/RESULTS.md`).
 
 ## adaptation
 

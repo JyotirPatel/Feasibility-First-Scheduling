@@ -15,10 +15,10 @@ CONFIG = load_yaml("sw_linucb.yaml")["reward"]
 
 
 def test_hand_computed_reward():
-    # latency 184/1000 = 0.184; energy 0.0004 kWh × $0.11 / $0.0002 = 0.22;
+    # latency 184/1000 = 0.184; energy 0.00004 kWh × $0.11 / $0.00001 = 0.44;
     # thermal (71 − 60) / (85 − 60) = 0.44
-    r = compute_reward(make_node(), make_outcome(), CONFIG)
-    assert r == pytest.approx(1.0 - 0.2 * 0.184 - 0.1 * 0.22 - 0.1 * 0.44, abs=1e-12)
+    r = compute_reward(make_node(), make_outcome(energy_kwh=0.00004), CONFIG)
+    assert r == pytest.approx(1.0 - 0.2 * 0.184 - 0.1 * 0.44 - 0.1 * 0.44, abs=1e-12)
 
 
 def test_missed_slo_scores_zero_for_that_term():
@@ -84,8 +84,8 @@ def test_latency_metric_switch():
 
 
 def test_energy_cost_source_switch():
-    cfg = {**CONFIG, "energy_cost_source": "cost_usd"}
-    assert reward_terms(make_node(), make_outcome(), cfg)["energy_cost"] == pytest.approx(0.00013 / 0.0002)
+    cfg = {**CONFIG, "energy_cost_source": "cost_usd", "energy_cost_max_usd": 0.001}  # rent included: a larger scale
+    assert reward_terms(make_node(), make_outcome(), cfg)["energy_cost"] == pytest.approx(0.00013 / 0.001)
 
 
 def test_negative_electricity_price_is_no_penalty():

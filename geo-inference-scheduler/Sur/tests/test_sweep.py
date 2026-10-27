@@ -60,7 +60,7 @@ def test_policies_are_built_with_the_jobs_settings():
 def test_one_run_produces_every_metric():
     cluster = short_cluster()
     job = Job("sw_linucb", "s6_outage_recovery", 0, mode="per_node", window=200, alpha=1.0)
-    row, curve = run_job((job, cluster.model_dump(), CFG.metrics.model_dump(), None, None))
+    row, curve = run_job((job, "standin", cluster.model_dump(), CFG.metrics.model_dump(), None, None))
     for key in (
         "slo_rate",
         "goodput_mean",

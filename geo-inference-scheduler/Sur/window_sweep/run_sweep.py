@@ -10,7 +10,7 @@ every scenario × seed in sweep.yaml, and writes a result bundle:
   results/curves.csv.gz    mean smoothed goodput G(t) per policy setting × scenario (for the figures)
   results/manifest.json    git commit, config hashes, versions, command — to reproduce the bundle
   results/raw/             full decision logs, only with --save-logs (kept out of git)
-  ../checkpoints/standin/  learned state of the default bandits (the `checkpoints:` runs)
+  ../checkpoints/simulator/  learned state of the default bandits (the `checkpoints:` runs)
 
 Figures are made from this bundle only, by make_figures.py.
 
@@ -18,8 +18,10 @@ Usage, from the Sur/ folder:
   python3 window_sweep/run_sweep.py            # the full sweep in sweep.yaml
   python3 window_sweep/run_sweep.py --quick    # a fast smoke run, written to results_quick/
 
-Until Parikshit's simulator exists this runs on the stand-in in standins/, so
-its numbers are preliminary.
+Every run goes through the project's real pipeline: Parikshit's simulator, Krupesh's
+router with Jyotir's filter, and Sur's reward (parikshit_backend.py). With
+--simulator standin it runs on the earlier stand-in in standins/ instead (its bundle
+is in results_standin/, checkpoints in ../checkpoints/standin/).
 """
 
 from __future__ import annotations
@@ -59,7 +61,16 @@ from standins.toy_cluster import SCENARIOS, ClusterConfig, change_times, load_cl
 
 POLICY_DIR = os.path.join(_SUR_DIR, "configs", "policies")
 DEFAULT_SWEEP = os.path.join(_HERE, "sweep.yaml")
-CHECKPOINT_DIR = os.path.join(_SUR_DIR, "checkpoints", "standin")
+SIMULATORS = {  # --simulator choice -> (checkpoint folder, label in the manifest)
+    "parikshit": (
+        os.path.join(_SUR_DIR, "checkpoints", "simulator"),
+        "Parikshit/simulator (SimPy) through Krupesh's router with Jyotir's filter",
+    ),
+    "standin": (
+        os.path.join(_SUR_DIR, "checkpoints", "standin"),
+        "Sur/standins/toy_cluster.py (stand-in; results are preliminary)",
+    ),
+}
 
 
 # ── Sweep config ─────────────────────────────────────────────────────────────
@@ -247,15 +258,25 @@ def _policy_yaml(name: str) -> dict:
         return yaml.safe_load(f)
 
 
-def make_policy(job: Job):
+def policy_config(job: Job) -> dict | None:
+    """The policy's YAML settings with this job's window and alpha (None for a baseline)."""
     if job.family == "sw_linucb":
         cfg = _policy_yaml("sw_linucb.yaml")
         cfg["window"]["size"], cfg["window"]["mode"], cfg["alpha"] = job.window, job.mode, job.alpha
-        return SlidingWindowLinUCB(cfg, seed=job.seed)
+        return cfg
     if job.family == "linucb":
         cfg = _policy_yaml("linucb.yaml")
         cfg["alpha"] = job.alpha
-        return LinUCB(cfg, seed=job.seed)
+        return cfg
+    return None
+
+
+def make_policy(job: Job):
+    """The policy object for the stand-in (parikshit_backend.make_router_policy for the router)."""
+    if job.family == "sw_linucb":
+        return SlidingWindowLinUCB(policy_config(job), seed=job.seed)
+    if job.family == "linucb":
+        return LinUCB(policy_config(job), seed=job.seed)
     cls = getattr(jyotir_baselines, job.baseline)
     return cls(seed=job.seed) if job.baseline == "PowerOfTwo" else cls()
 
@@ -264,29 +285,40 @@ def make_policy(job: Job):
 
 
 def run_job(args: tuple) -> tuple[dict, np.ndarray]:
-    job, cluster_dict, metrics_dict, raw_dir, checkpoint_dir = args
-    cluster = ClusterConfig.model_validate(cluster_dict)
+    job, simulator, cluster_dict, metrics_dict, raw_dir, checkpoint_dir = args
     metrics = MetricsSpec.model_validate(metrics_dict)
-    policy = make_policy(job)
     run_id = f"{job.label}|{job.scenario}|seed={job.seed}"
 
     started = time.perf_counter()
-    result = simulate(
-        policy,
-        job.scenario,
-        job.seed,
-        cluster=cluster,
-        policy_name=job.label,
-        run_id=run_id,
-        details=raw_dir is not None,
-    )
+    if simulator == "parikshit":
+        from window_sweep import parikshit_backend as backend
+
+        policy = backend.make_router_policy(job.family, seed=job.seed, config=policy_config(job), baseline=job.baseline)
+        result = backend.simulate(policy, job.scenario, job.seed, policy_name=job.label, run_id=run_id)
+        cluster = backend.scenario_clock(job.scenario)
+        anchors = cluster.change_times
+    else:
+        cluster = ClusterConfig.model_validate(cluster_dict)
+        policy = make_policy(job)
+        result = simulate(
+            policy,
+            job.scenario,
+            job.seed,
+            cluster=cluster,
+            policy_name=job.label,
+            run_id=run_id,
+            details=raw_dir is not None,
+        )
+        anchors = change_times(cluster, job.scenario)
     runtime = time.perf_counter() - started
 
-    row, curve = compute_metrics(result, cluster, job.scenario, metrics)
+    row, curve = compute_metrics(result, cluster, job.scenario, metrics, anchors)
     row = {**asdict(job), "label": job.label, **row, "runtime_s": runtime}
     stats = result.stats.get("policy_stats", {})
     row["ignored_feedback"] = stats.get("ignored_feedback", 0)
     row["dropped_pending"] = stats.get("dropped_pending", 0)
+    row["reward_mismatch"] = stats.get("reward_mismatch", 0)
+    row["true_state_violations"] = result.stats.get("true_state_violations", 0)
 
     if raw_dir is not None:
         os.makedirs(raw_dir, exist_ok=True)
@@ -297,7 +329,12 @@ def run_job(args: tuple) -> tuple[dict, np.ndarray]:
     return row, curve
 
 
-def compute_metrics(result, cluster: ClusterConfig, scenario: str, m: MetricsSpec) -> tuple[dict, np.ndarray]:
+def compute_metrics(
+    result, cluster, scenario: str, m: MetricsSpec, anchors: dict[str, float] | None = None
+) -> tuple[dict, np.ndarray]:
+    """cluster: the stand-in's ClusterConfig or parikshit_backend.ScenarioClock; anchors: the change times."""
+    if anchors is None:
+        anchors = change_times(cluster, scenario)
     t_arrival = np.asarray(result.column("t_arrival"), dtype=float)
     met = np.asarray(result.column("slo_met"), dtype=bool)
     routed = np.asarray([d == "route" for d in result.column("decision")])
@@ -324,7 +361,7 @@ def compute_metrics(result, cluster: ClusterConfig, scenario: str, m: MetricsSpe
         "ttft_p95_ms": float(np.percentile(served, 95)) if served.size else float("nan"),
         "ttft_p99_ms": float(np.percentile(served, 99)) if served.size else float("nan"),
     }
-    for anchor, t_anchor in change_times(cluster, scenario).items():
+    for anchor, t_anchor in anchors.items():
         prefix = "" if anchor == "t0" else f"{anchor}_"
         try:
             steady_level(G, t_anchor, m.bin_s, m.steady_from_s, m.steady_to_s)
@@ -494,7 +531,7 @@ def mean_curves(rows: list[dict], curves: list[np.ndarray], bin_s: float) -> lis
     return out
 
 
-def manifest(args: argparse.Namespace, n_jobs: int, runtime: float, cluster_path: str) -> dict:
+def manifest(args: argparse.Namespace, n_jobs: int, runtime: float, cluster_path: str | None) -> dict:
     def sha(path):
         with open(path, "rb") as f:
             return hashlib.sha256(f.read()).hexdigest()
@@ -506,9 +543,19 @@ def manifest(args: argparse.Namespace, n_jobs: int, runtime: float, cluster_path
         except (OSError, subprocess.SubprocessError):
             return None
 
+    if args.simulator == "parikshit":
+        from window_sweep import parikshit_backend as backend
+
+        simulator_configs = backend.config_paths()
+        clock = backend.scenario_clock("s6_outage_recovery")
+        t0_s, return_s = clock.t0_s, clock.scenarios.s6_outage_recovery.return_s
+    else:
+        simulator_configs = [cluster_path]
+        cluster = load_cluster_config(cluster_path)
+        t0_s, return_s = cluster.t0_s, cluster.scenarios.s6_outage_recovery.return_s
     configs = [
         args.config,
-        cluster_path,
+        *simulator_configs,
         os.path.join(_JYOTIR_DIR, "feasibility_filter", "configs", "feasibility.yaml"),
         *(os.path.join(POLICY_DIR, f) for f in sorted(os.listdir(POLICY_DIR)) if f.endswith(".yaml")),
     ]
@@ -525,14 +572,17 @@ def manifest(args: argparse.Namespace, n_jobs: int, runtime: float, cluster_path
         "config_sha256": {os.path.relpath(p, repo_root): sha(p) for p in configs},
         "runs": n_jobs,
         "runtime_s": round(runtime, 1),
-        "simulator": "Sur/standins/toy_cluster.py (stand-in; results are preliminary)",
+        "simulator": SIMULATORS[args.simulator][1],
+        "t0_s": t0_s,  # the change in every scenario (read by make_figures.py)
+        "s6_return_s": return_s,  # the S6 node's return
     }
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", default=DEFAULT_SWEEP, help="sweep settings (default: window_sweep/sweep.yaml)")
-    ap.add_argument("--cluster", default=None, help="stand-in cluster config (default: standins/toy_cluster.yaml)")
+    ap.add_argument("--simulator", choices=sorted(SIMULATORS), default="parikshit", help="default: parikshit")
+    ap.add_argument("--cluster", default=None, help="stand-in only: its cluster config (standins/toy_cluster.yaml)")
     ap.add_argument("--out", default=None, help="output folder (default: window_sweep/results or results_quick)")
     ap.add_argument("--quick", action="store_true", help="fast smoke run: 2 seeds, 3 scenarios, 2 windows")
     ap.add_argument("--save-logs", action="store_true", help="also write every decision log to <out>/raw/")
@@ -540,17 +590,22 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     cfg = load_sweep_config(args.config)
-    cluster_path = args.cluster or os.path.join(_SUR_DIR, "standins", "toy_cluster.yaml")
-    cluster = load_cluster_config(cluster_path)
-    out = args.out or os.path.join(_HERE, "results_quick" if args.quick else "results")
+    cluster_path, cluster_dict = None, None
+    if args.simulator == "standin":
+        cluster_path = args.cluster or os.path.join(_SUR_DIR, "standins", "toy_cluster.yaml")
+        cluster_dict = load_cluster_config(cluster_path).model_dump()
+    default_out = {"parikshit": "results", "standin": "results_standin"}[args.simulator]
+    out = args.out or os.path.join(_HERE, "results_quick" if args.quick else default_out)
     os.makedirs(out, exist_ok=True)
     raw_dir = os.path.join(out, "raw") if args.save_logs else None
-    checkpoint_dir = None if args.quick else CHECKPOINT_DIR
+    checkpoint_dir = None if args.quick else SIMULATORS[args.simulator][0]
+    if checkpoint_dir:
+        os.makedirs(checkpoint_dir, exist_ok=True)
 
     jobs = build_jobs(cfg, quick=args.quick)
     workers = args.workers if args.workers is not None else cfg.workers
     workers = workers or max((os.cpu_count() or 2) - 2, 1)
-    payload = [(job, cluster.model_dump(), cfg.metrics.model_dump(), raw_dir, checkpoint_dir) for job in jobs]
+    payload = [(job, args.simulator, cluster_dict, cfg.metrics.model_dump(), raw_dir, checkpoint_dir) for job in jobs]
     # Longest runs first (the S2 burst has the most requests) so the pool finishes evenly.
     payload.sort(key=lambda p: (p[0].scenario != "s2_traffic_burst", p[0].family == "baseline"))
 

@@ -1,20 +1,30 @@
 {
-  "created_utc": "2026-10-27T03:46:58+00:00",
+  "created_utc": "2026-10-27T07:58:48+00:00",
   "command": "python3 window_sweep/run_sweep.py",
-  "git_commit": "1f2f514cfe92d2dbabbf2cf343d9a5dcec98d7f4",
+  "git_commit": "6f9100ca3e7ca7e11fc07fb96b6ded2ca6d33338",
   "git_uncommitted_changes": true,
   "python": "3.11.4",
   "numpy": "2.4.2",
   "platform": "macOS-27.0.1-arm64-arm-64bit",
   "config_sha256": {
-    "geo-inference-scheduler/Sur/window_sweep/sweep.yaml": "1ed0d68db6091ccc1fb684754931b3b86c836e6a0c54bc021eb9eba03e9b50e3",
-    "geo-inference-scheduler/Sur/standins/toy_cluster.yaml": "c7dbf684f92ebdf74593f1b999ce30caf6356324d4f098af89134da602e64fc1",
+    "geo-inference-scheduler/Sur/window_sweep/sweep.yaml": "9f7b3f1cec5f87c4455b707332084d4d01614fd002ba8a66ffc99a86ce8ffb70",
+    "geo-inference-scheduler/Parikshit/configs/nodes_5.yaml": "092340dd918af1bbeb75a52ad602e16f8f91d80aa53ccca67174075df3a210cf",
+    "geo-inference-scheduler/Parikshit/configs/workload.yaml": "c02741c24a16dd3c085ccb7621150ee97c9acd3dd978abce578a5b4e43eec8fa",
+    "geo-inference-scheduler/Parikshit/configs/calibration.yaml": "893a4a427796acdfae7587238e9580f2da6dd5c3d0bfd218cc3d024931183146",
+    "geo-inference-scheduler/Parikshit/event_traces/s1_stable.yaml": "f8f38f8d0192315644e9f7367a810f36eb933992b6dbdc04cdab4196d693ab67",
+    "geo-inference-scheduler/Parikshit/event_traces/s2_traffic_burst.yaml": "9d6329c309fb1f0b9c5d3cf265e499ffda276d251aeea0839c9ab316b06cad2a",
+    "geo-inference-scheduler/Parikshit/event_traces/s3_price_shift.yaml": "0a2ec6ad0e369d2077e1837c260af94c73bbab706c64fc29c9a0c3cca52bd66c",
+    "geo-inference-scheduler/Parikshit/event_traces/s4_thermal_throttle.yaml": "48318469dd4e1386db4945333797c65fb86a0694eab5d1f5e338e1628343e425",
+    "geo-inference-scheduler/Parikshit/event_traces/s5_network_degradation.yaml": "17fb2a06add30519bb537cee2c64f08188a375f3607a47d364b4871aef00150d",
+    "geo-inference-scheduler/Parikshit/event_traces/s6_outage_recovery.yaml": "1bbabe2d70e36e3659f55b81d89013ddbb182e74a9aefcdfdca5c473dbacbab4",
     "geo-inference-scheduler/Jyotir/feasibility_filter/configs/feasibility.yaml": "77428c5eb4e3c2fdbc924b6fec720a2b7b7fbb703070511d2a785d9d46220ca1",
-    "geo-inference-scheduler/Sur/configs/policies/linucb.yaml": "0f27d76542d2e282845f6d651fa1e6258bd30fe146ab64ec9877ab32668bdbd1",
-    "geo-inference-scheduler/Sur/configs/policies/sw_linucb.yaml": "419785eb81e3980f4a362b2e86e7805b57189c62586e218fd87351deacf770a8",
-    "geo-inference-scheduler/Sur/configs/policies/sw_linucb_no_context.yaml": "506b78c72ac2cb63bfc0207417ebef023314b02bbc0ab7a3855921194f052c91"
+    "geo-inference-scheduler/Sur/configs/policies/linucb.yaml": "16b299f8b81c127a91b0f101a9b58a74679a421f2b072527feb749cec459a7e3",
+    "geo-inference-scheduler/Sur/configs/policies/sw_linucb.yaml": "45d3308ca9a5fa017e7d61bbec98b0ca9c1d136a38f36253710c74da21e83e95",
+    "geo-inference-scheduler/Sur/configs/policies/sw_linucb_no_context.yaml": "30989a6151d35eefbdf6189de810927b3b4c968e394510939fa275ee4429e85f"
   },
   "runs": 1350,
-  "runtime_s": 14371.7,
-  "simulator": "Sur/standins/toy_cluster.py (stand-in; results are preliminary)"
+  "runtime_s": 1257.8,
+  "simulator": "Parikshit/simulator (SimPy) through Krupesh's router with Jyotir's filter",
+  "t0_s": 200.0,
+  "s6_return_s": 400.0
 }

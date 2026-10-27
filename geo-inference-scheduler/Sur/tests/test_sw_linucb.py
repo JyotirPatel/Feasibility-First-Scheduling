@@ -207,7 +207,7 @@ def test_only_a_global_window_rediscovers_a_node_it_had_abandoned():
 def test_default_config_file_loads():
     cfg = load_config()
     assert cfg.policy == "sw_linucb"
-    assert cfg.window.size == 1000 and cfg.window.mode == "per_node"
+    assert cfg.window.size == 500 and cfg.window.mode == "per_node"  # the window sweep's choice
 
 
 @pytest.mark.parametrize(
