@@ -126,7 +126,7 @@ def test_every_request_is_logged_once_with_the_decision_log_columns(scenario):
         if r["decision"] == "route":
             assert r["node_id"] in r["feasible_nodes"] and r["reward"] is not None
         else:
-            assert r["reject_reason"] == "no feasible node" and r["node_id"] is None
+            assert r["reject_reason"] == "no_feasible_node" and r["node_id"] is None
 
 
 @pytest.mark.parametrize("make", [LinUCB, SlidingWindowLinUCB])
@@ -135,6 +135,7 @@ def test_the_bandit_gets_exactly_one_feedback_per_decision(make):
     result = simulate(policy, "s6_outage_recovery", 1, cluster=CLUSTER)
     assert policy.stats["decisions"] == policy.stats["updates"] == result.stats["routed"]
     assert policy.stats["ignored_feedback"] == 0 and policy.pending_count == 0
+    assert policy.stats["reward_mismatch"] == 0  # the stand-in fills outcome.reward with the policy's own reward
 
 
 def test_logged_reward_is_the_reward_the_bandit_learned_from():

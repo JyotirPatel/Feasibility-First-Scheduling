@@ -22,8 +22,11 @@ the SLO always scores higher than missing it.
 
 A missing value (None), NaN or infinity in the outcome — for example a request
 lost when its node went down — gets the worst value for its term, so a failure
-can never score better than a slow success. A negative time or energy is a
-data error and raises ValueError.
+can never score better than a slow success. An outcome marked failed=True
+(Krupesh's Outcome, for a node that died while holding the request) is treated
+the same way: no SLO credit and the worst latency, whatever time it reports,
+because that time only measures how long the request waited before it was lost.
+A negative time or energy is a data error and raises ValueError.
 
 `node` is the chosen node's snapshot at decision time (the policy keeps it
 from choose() until the feedback arrives). The router can call
@@ -94,7 +97,10 @@ def reward_terms(node: Any, outcome: Any, config: RewardConfig | Mapping[str, An
     """The four reward terms before weighting: slo_met is 0/1, the rest 0..1."""
     cfg = as_reward_config(config)
 
+    slo_met = _slo_met(outcome)
     latency_ms = _optional_nonneg(outcome, cfg.latency_metric, "outcome")
+    if _failed(outcome):  # lost on a node that went down: its reported time is not a latency
+        slo_met, latency_ms = 0.0, None
 
     if cfg.energy_cost_source == "energy_usd":
         energy_kwh = _optional_nonneg(outcome, "energy_kwh", "outcome")
@@ -106,7 +112,7 @@ def reward_terms(node: Any, outcome: Any, config: RewardConfig | Mapping[str, An
     temperature = _optional_number(node, "temperature_c", "node", required=True)
 
     return {
-        "slo_met": _slo_met(outcome),
+        "slo_met": slo_met,
         "latency": _scaled_or_worst(latency_ms, 0.0, cfg.latency_max_ms),
         "energy_cost": _scaled_or_worst(energy_usd, 0.0, cfg.energy_cost_max_usd),
         "thermal_stress": _scaled_or_worst(temperature, cfg.thermal_safe_c, cfg.thermal_limit_c),
@@ -156,6 +162,16 @@ def _slo_met(outcome: Any) -> float:
     if isinstance(value, (bool, np.bool_)):
         return 1.0 if value else 0.0
     raise TypeError(f"reward: slo_met must be true/false, got {value!r}")
+
+
+def _failed(outcome: Any) -> bool:
+    """Krupesh's Outcome has failed=True for a request lost on a dead node; outcomes without the field never failed."""
+    value = _get(outcome, "failed", False)
+    if value is None:
+        return False
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    raise TypeError(f"reward: failed must be true/false, got {value!r}")
 
 
 def _optional_number(obj: Any, key: str, kind: str, required: bool = True) -> float | None:

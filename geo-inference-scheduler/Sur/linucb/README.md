@@ -21,9 +21,12 @@ log_row["reward"] = policy.last_reward
 
 ## Details that matter for integration
 
-- **It subclasses the shared `Policy` stub**, `Jyotir/stubs/stub_policy.py`, exactly like Jyotir's baselines. When Krupesh publishes the real base class, change only that one import line.
+- **It subclasses the shared `Policy` stub**, `Jyotir/stubs/stub_policy.py`, exactly like Jyotir's baselines. For Krupesh's router, `router_plugin.RouterLinUCB` is this same class with his `router_service.policy_base.Policy` added as a base (see `../router_plugin/`). When the team merges into one layout, the stub import here can become his base class directly.
+- **It accepts dicts or objects.** Requests, nodes and outcomes are read by field name, so Jyotir's filter output (dicts) and Krupesh's `Request` / `NodeState` / `Outcome` dataclasses give the same context vector and the same choice.
 - **Delayed feedback is handled inside.** `choose()` stores the exact `x` it used and the node's temperature and price, keyed by `request_id`. `update()` learns from those, never from newer telemetry. Feedback can arrive in any order.
-- **The reward is computed by the policy** (`reward/`). `outcome.reward` is ignored, so a placeholder from the router cannot corrupt learning. The value used is in `last_reward`.
+- **The reward is computed by the policy** (`reward/`), so a placeholder from the router cannot corrupt learning. The value used is in `last_reward`.
+  - Krupesh's router fills `outcome.reward` before `update()`. With Sur's `router_plugin.reward_fn` that is the same number.
+  - If a filled-in value differs, the router is probably using another reward function (such as his `mock_reward`). The policy then learns from its own value, counts the difference in `stats["reward_mismatch"]`, and logs one warning.
 - **Safe with bad feedback.** Feedback that is unknown, duplicated, or names a node other than the one chosen is ignored and counted in `stats`. A malformed outcome raises an error and leaves the decision pending for a retry.
 - **Pending decisions are capped** by `max_pending` (100,000), so feedback that never arrives cannot grow memory without bound.
 - **Reproducible.** Exact score ties are broken by a seeded random generator; `LinUCB(seed=...)` overrides the config seed per run.

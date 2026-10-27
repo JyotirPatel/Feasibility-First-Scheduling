@@ -116,8 +116,9 @@ def reference_reward(node, out, cfg):
     def worst_if_unknown(v, scale):
         return 1.0 if v is None or not math.isfinite(v) else clip(v / scale)
 
-    met = 1.0 if out["slo_met"] else 0.0
-    latency = worst_if_unknown(out[cfg["latency_metric"]], cfg["latency_max_ms"])
+    failed = out.get("failed", False)  # a request lost on a dead node: no SLO credit, worst latency
+    met = 1.0 if out["slo_met"] and not failed else 0.0
+    latency = 1.0 if failed else worst_if_unknown(out[cfg["latency_metric"]], cfg["latency_max_ms"])
     if cfg["energy_cost_source"] == "energy_usd":
         kwh = out["energy_kwh"]
         usd = None if kwh is None or not math.isfinite(kwh) else kwh * node["energy_price_usd_kwh"]
@@ -154,6 +155,7 @@ def test_reward_matches_an_independent_implementation(variant):
             e2e_ms=float(rng.uniform(0, 60000)),
             energy_kwh=math.nan if rng.random() < 0.05 else float(rng.uniform(0, 0.005)),
             cost_usd=float(rng.uniform(-0.0002, 0.002)),
+            failed=bool(rng.random() < 0.1),
         )
         assert compute_reward(node, out, cfg) == pytest.approx(reference_reward(node, out, cfg), abs=1e-12), i
 

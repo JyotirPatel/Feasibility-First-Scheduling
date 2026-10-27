@@ -21,9 +21,12 @@ Delayed feedback: the outcome arrives seconds after the decision
 remembers, per request_id, the exact context vector x it used and the node
 numbers the reward needs (temperature, electricity price). update() learns
 from those, never from newer telemetry. update() always computes the reward
-itself with reward.compute_reward() and ignores outcome.reward, so a
-placeholder value from the router cannot corrupt learning; the value used is
-kept in `last_reward` for the decision log.
+itself with reward.compute_reward(), so a placeholder value from the router
+cannot corrupt learning; the value used is kept in `last_reward` for the
+decision log. Krupesh's router fills outcome.reward with Sur's reward_fn
+(router_plugin/), which gives the same number. If a filled-in value differs,
+the router is probably wired to another reward function, so the policy counts
+it in stats["reward_mismatch"] and warns once.
 
 Feedback for an unknown request_id (never chosen, already updated, or
 dropped because more than max_pending decisions were waiting) is ignored and
@@ -200,7 +203,7 @@ class LinUCB(Policy):
         self._pending: OrderedDict[str, _Decision] = OrderedDict()
         self._lock = threading.RLock()
         self.last_reward: float | None = None
-        self.stats = {"decisions": 0, "updates": 0, "ignored_feedback": 0, "dropped_pending": 0}
+        self.stats = {"decisions": 0, "updates": 0, "ignored_feedback": 0, "dropped_pending": 0, "reward_mismatch": 0}
 
     @classmethod
     def _resolve_config(cls, config: Any) -> BanditConfig:
@@ -260,6 +263,7 @@ class LinUCB(Policy):
             # decision stays pending, so a corrected retry can still be learned.
             r = compute_reward(decision.node, outcome, self.config.reward)
             del self._pending[request_id]
+            self._check_reported_reward(outcome, r)
             self._learn(decision.node_id, decision.x, r)
             self.last_reward = r
             self.stats["updates"] += 1
@@ -405,6 +409,22 @@ class LinUCB(Policy):
         self.stats["ignored_feedback"] += 1
         logger.warning("%s: ignored %s", self.name, why)
 
+    def _check_reported_reward(self, outcome: Any, r: float) -> None:
+        """Count a router-filled outcome.reward that differs from the reward this policy learns from."""
+        reported = outcome.get("reward") if isinstance(outcome, Mapping) else getattr(outcome, "reward", None)
+        if reported is None or _same_reward(reported, r):
+            return
+        self.stats["reward_mismatch"] += 1
+        if self.stats["reward_mismatch"] == 1:
+            logger.warning(
+                "%s: outcome.reward %r differs from this policy's reward %r; the router may use another reward "
+                "function (Sur's is router_plugin.reward_fn). Learning from its own; further mismatches are only "
+                "counted in stats['reward_mismatch']",
+                self.name,
+                reported,
+                r,
+            )
+
     def _check_meta(self, meta: dict, path: Any) -> None:
         if meta.get("format") != CHECKPOINT_FORMAT or meta.get("version") != CHECKPOINT_VERSION:
             raise ValueError(f"{path}: unsupported checkpoint format {meta.get('format')!r} v{meta.get('version')!r}")
@@ -451,6 +471,14 @@ def _reward_inputs(node: Any) -> dict:
             raise KeyError(f"candidate node {values['node_id']!r} has no '{key}' (needed for the reward)")
         values[key] = value
     return values
+
+
+def _same_reward(reported: Any, r: float) -> bool:
+    try:
+        value = float(reported)
+    except (TypeError, ValueError):
+        return False
+    return math.isclose(value, r, rel_tol=1e-9, abs_tol=1e-12)
 
 
 def _atomic_savez(path: str | os.PathLike, arrays: dict[str, np.ndarray]) -> None:

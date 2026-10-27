@@ -99,6 +99,23 @@ def test_thermal_stress_shape(temperature, expected):
     assert terms["thermal_stress"] == pytest.approx(expected)
 
 
+def test_failed_outcome_gets_no_slo_credit_and_the_worst_latency():
+    """Krupesh's simulator reports a request lost on a dead node as failed=True with a finite ttft_ms
+    (how long it waited before it was lost). That time is not a latency, so it must score as a failure."""
+    lost = make_outcome(failed=True, slo_met=True, ttft_ms=40.0, e2e_ms=40.0, energy_kwh=0.0)
+    terms = reward_terms(make_node(), lost, CONFIG)
+    assert terms["slo_met"] == 0.0 and terms["latency"] == 1.0
+    unknown_ttft = make_outcome(slo_met=False, ttft_ms=float("inf"), e2e_ms=float("inf"), energy_kwh=0.0)
+    assert compute_reward(make_node(), lost, CONFIG) == compute_reward(make_node(), unknown_ttft, CONFIG)
+    slow_success = make_outcome(slo_met=False, ttft_ms=900.0, energy_kwh=0.0)
+    assert compute_reward(make_node(), lost, CONFIG) < compute_reward(make_node(), slow_success, CONFIG)
+    assert compute_reward(make_node(), make_outcome(failed=False), CONFIG) == compute_reward(
+        make_node(), make_outcome(), CONFIG
+    )
+    with pytest.raises(TypeError):
+        compute_reward(make_node(), make_outcome(failed="yes"), CONFIG)
+
+
 def test_dataclass_outcome_and_object_node_work():
     from stubs.stub_policy import Outcome
 

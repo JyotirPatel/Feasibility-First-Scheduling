@@ -87,7 +87,7 @@ DECISION_LOG_COLUMNS = (
     "cost_usd",
     "reward",
 )
-NO_FEASIBLE_NODE = "no feasible node"  # brief §6.1
+NO_FEASIBLE_NODE = "no_feasible_node"  # brief §6.1; spelled as in Krupesh's contract (api_contract/types.py)
 
 
 class SafetyViolation(RuntimeError):

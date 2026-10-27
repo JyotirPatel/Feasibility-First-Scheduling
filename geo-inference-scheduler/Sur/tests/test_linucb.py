@@ -145,6 +145,19 @@ def test_reward_is_computed_by_the_policy_not_taken_from_the_outcome():
     policy.choose(request, [make_node("a")])
     policy.update(request, "a", make_outcome(reward=999.0))
     assert policy.last_reward == pytest.approx(compute_reward(make_node("a"), make_outcome(), policy.config.reward))
+    assert policy.stats["reward_mismatch"] == 1
+
+
+def test_a_router_reward_that_differs_is_counted_and_warned_about_once(caplog):
+    policy = fresh()
+    own = compute_reward(make_node("a"), make_outcome(), policy.config.reward)
+    for i, reported in enumerate([own, None, 999.0, float("nan"), "bad", own + 1e-15]):
+        policy.choose(make_request(f"r-{i}"), [make_node("a")])
+        with caplog.at_level("WARNING", logger="linucb.linucb"):
+            policy.update(make_request(f"r-{i}"), "a", make_outcome(reward=reported))
+    # equal, missing and equal-within-rounding are fine; 999, NaN and a non-number are mismatches
+    assert policy.stats["reward_mismatch"] == 3 and policy.stats["updates"] == 6
+    assert sum("differs from this policy's reward" in r.getMessage() for r in caplog.records) == 1
 
 
 def test_out_of_order_feedback_is_matched_by_request_id():
@@ -168,7 +181,13 @@ def test_duplicate_unknown_and_mismatched_feedback_is_ignored():
     policy.choose(make_request("r-2"), [make_node("a")])
     policy.update(make_request("r-2"), "b", make_outcome())  # wrong node
     assert policy.model_counts() == {"a": 1}
-    assert policy.stats == {"decisions": 2, "updates": 1, "ignored_feedback": 3, "dropped_pending": 0}
+    assert policy.stats == {
+        "decisions": 2,
+        "updates": 1,
+        "ignored_feedback": 3,
+        "dropped_pending": 0,
+        "reward_mismatch": 0,
+    }
     assert policy.pending_count == 0
     assert policy.last_reward is None
 

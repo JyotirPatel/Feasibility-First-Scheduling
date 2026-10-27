@@ -120,29 +120,36 @@ Every task above is implemented and tested. Each folder has its own README with 
 | Parameter files | `configs/policies/` | `linucb.yaml`, `sw_linucb.yaml`, `sw_linucb_no_context.yaml`; no numbers in the Python code |
 | Checkpoints | `checkpoints/` | save/load in both policies (`.npz`, no pickle); stand-in checkpoints from the sweep |
 | Method section draft | `report/method_section.md` | draft for Riya to merge into the report |
+| Router plug-in | `router_plugin/` | done: the policies as subclasses of Krupesh's `Policy`, `reward_fn` in his `RewardFn` shape, registry names, and his handbook's end-to-end acceptance check (`router_plugin/check_router.py`) |
 | Tests | `tests/` | every module tested (`python3 -m pytest geo-inference-scheduler/Sur/tests -q`) |
 
 Install: `python3 -m pip install -r geo-inference-scheduler/Sur/requirements.txt` (Python 3.11+).
 
 ### For Krupesh (router)
 
+Your router plugs in through `router_plugin/`. Details are in `router_plugin/README.md`.
+
 ```python
-from sliding_window_linucb import SlidingWindowLinUCB  # or: from linucb import LinUCB
+from router_plugin import register, reward_fn  # with geo-inference-scheduler/Sur on sys.path
 
-policy = SlidingWindowLinUCB(seed=run_seed)  # reads configs/policies/sw_linucb.yaml
-
-allowed, rejected = feasibility_filter(request, telemetry)  # Jyotir's filter first
-node_id = policy.choose(request, allowed)  # always one of `allowed`
-...  # POST /feedback arrives later
-policy.update(request, node_id, outcome)  # Outcome(ttft_ms, e2e_ms, slo_met, energy_kwh, cost_usd, reward)
-decision_log_row["reward"] = policy.last_reward
+register()  # adds sur:linucb, sur:sw_linucb, sur:sw_linucb_no_context, linucb, sliding_window_linucb
+engine = RoutingEngine(policy=build_policy("sur:sw_linucb", seed=seed), filter_fn=build_filter("jyotir"),
+                       reward_fn=reward_fn, ...)  # reward_fn replaces mock_reward
 ```
 
-- Both policies subclass the shared `Policy` stub in `Jyotir/stubs/stub_policy.py`, like Jyotir's baselines. When your real base class exists, change the one `from stubs.stub_policy import ...` line in `linucb/linucb.py`.
-- `update()` doesn't receive the features, so the policy stores them itself at `choose()` time, keyed by `request_id`. Please keep `request_id` unique per request and send exactly one feedback for every routed request, **including failures** (for example, a node dying mid-request).
-- The policy computes the reward itself and ignores `outcome.reward`. `reward.compute_reward(node_snapshot, outcome, cfg)` gives the same number for baseline runs.
-- The SLO field is read from `ttft_slo_ms` (brief) or `slo_ms` (Jyotir's stub), because the drafts disagree.
-- `choose()` and `update()` are thread-safe.
+- **Acceptance check.** `python3 router_plugin/check_router.py` runs your handbook's acceptance check from Sur's side, with your mock cluster, Jyotir's filter and Sur's policy and reward. It gives `log_problems: []` and `constraint_violations: 0`; `tests/test_router_plugin.py` runs it too.
+- **Policy classes.** The registered policies are `RouterLinUCB` and `RouterSlidingWindowLinUCB`: the same classes as `linucb/` and `sliding_window_linucb/`, with your `Policy` added as a base. They read your typed `Request` and `NodeState` and Jyotir's dicts alike.
+- **Feedback.** `update()` doesn't receive the features, so the policy stores them at `choose()` time, keyed by `request_id`. Please keep `request_id` unique per request and send exactly one feedback for every routed request, **including failures** (`failed=True`). Your engine and mock already do this.
+- **Reward.** The policy recomputes the reward itself; with `reward_fn` it equals your `outcome.reward`. A difference is counted in `stats["reward_mismatch"]`, for example if `mock_reward` is still wired in. A `failed=True` outcome gets no SLO credit and the worst latency.
+- **Fields.** The SLO deadline is read from `ttft_slo_ms` (your contract) or `slo_ms` (Jyotir's stub).
+- **Threads.** `choose()` and `update()` are thread-safe.
+- **Your upload's location.** Your upload sits at `Krupesh/geo-inference-scheduler/Krupesh/`.
+  - There, your adapter cannot find Jyotir's folder, and 29 of your 35 tests fail.
+  - Moving the folder up one level fixes it. On a copy, 30 pass and 1 is skipped; the 4 others need `pyarrow`.
+  - The plug-in finds your code in either place.
+- **Your handbook's open decisions owned by Sur (§7).**
+  - **#3, window counted globally or per node:** Sur's default is **per node**. In the sweep, per-node windows had higher mean goodput than global windows at every W ≥ 1000, in every scenario. Global windows also rushed onto the returning S6 node in 69 of 70 runs (`window_sweep/RESULTS.md`).
+  - **#4, reward weights:** Sur's are 1.0 / 0.2 / 0.1 / 0.1 (`configs/policies/sw_linucb.yaml`), so the SLO term dominates. Scales: latency 1,000 ms, energy cost $0.0002, thermal 60 → 85 °C. The 1.0 / 0.3 / 0.2 / 0.1 in the handbook are your mock reward's placeholders.
 
 ### For Riya (experiments)
 

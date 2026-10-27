@@ -22,8 +22,9 @@ Defaults (in `configs/policies/*.yaml`): weights 1.0 / 0.2 / 0.1 / 0.1, so **the
 
 **Failures:**
 - A missing value (`None`), NaN or infinity, such as a request lost in an outage, gets the worst value for its term, so a failure never scores better than a slow success.
+- An outcome with `failed=True` gets no SLO credit and the worst latency term, whatever time it reports. Krupesh's `Outcome` sets this flag when a node dies while holding a request, and his simulator then reports a finite `ttft_ms`: how long the request waited before it was lost, not a latency. Outcomes without the field never failed.
 - A negative time or energy is a data error and raises `ValueError`.
-- A missing `slo_met` raises `KeyError`.
+- A missing `slo_met` raises `KeyError`. A non-boolean `slo_met` or `failed` raises `TypeError`.
 
 ```python
 from reward import compute_reward, reward_terms
@@ -31,6 +32,8 @@ from reward import compute_reward, reward_terms
 r = compute_reward(node_snapshot_at_decision, outcome, config["reward"])
 ```
 
-`node` must be the snapshot the policy saw when it chose. The policy keeps that snapshot itself, so a router calling `compute_reward` should pass the same candidate dict it gave to `choose()`.
+`node` must be the snapshot the policy saw when it chose. The policy keeps that snapshot itself, so a router calling `compute_reward` should pass the same candidate it gave to `choose()`.
+
+For Krupesh's router, `router_plugin.reward_fn(outcome, node_at_dispatch)` is this reward in his `RewardFn` shape, with the weights from `configs/policies/sw_linucb.yaml` (see `../router_plugin/README.md`).
 
 Tests: `tests/test_reward.py`.

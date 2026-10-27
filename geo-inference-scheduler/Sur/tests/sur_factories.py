@@ -56,7 +56,7 @@ def make_outcome(**overrides) -> dict:
         "slo_met": True,
         "energy_kwh": 0.0004,
         "cost_usd": 0.00013,
-        "reward": 0.0,
+        "reward": None,  # filled in by the router; None means it has not been
     }
     outcome.update(overrides)
     return outcome
