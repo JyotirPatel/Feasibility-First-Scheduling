@@ -1,0 +1,11 @@
+request_id,completion_time_s,rejected,latency_ms,slo_met,cost_usd,energy_j
+1,1,false,100,true,0.01,10
+2,2,false,150,true,0.01,10
+3,3,false,200,true,0.01,10
+4,4,false,240,true,0.01,10
+5,5,false,180,true,0.01,10
+6,6,false,220,true,0.01,10
+7,7,false,300,false,0.03,30
+8,8,false,400,false,0.03,30
+9,,true,,false,0,0
+10,,true,,false,0,0
