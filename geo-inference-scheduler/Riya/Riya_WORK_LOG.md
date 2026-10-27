@@ -97,3 +97,25 @@ during team integration.
 
 - `a8106d4`: Initial metrics and synthetic verification example
 - `a578495`: Dry-run planner for 420 experiment combinations
+
+
+
+Integrated Evaluation Update - October 27, 2026
+Implementation is now stored on main; any earlier reference to the deleted riya/evaluation branch is historical.
+Completed
+- Added metrics/evaluate_log.py for router logs, with TTFT/e2e p95/p99, SLO goodput, outcome counts, rejection/failure rates, logged constraint violations, and raw cost/energy per SLO success.
+- Added experiment_runner/run_evaluation.py and config_mock.json, connecting Krupesh's router, Jyotir's filter/baselines and Sur's real learning policies/reward.
+- Executed 7 policies x 2 mock scenarios x 10 seeds = 140 unique runs, all status ok. Each uses 300 seconds of arrivals at 10 requests/second.
+- Generated per-run logs, metrics, status, goodput curves, configuration and source metadata.
+- Generated 95% bootstrap confidence intervals across seed runs (2,000 resamples).
+Preliminary results
+- Plain/sliding-window LinUCB stable mean goodput: 9.211/9.211 requests/second.
+- Plain/sliding-window LinUCB outage mean goodput: 8.212/8.211 requests/second.
+- Strongest baseline by mean goodput, static weighted: 8.953 stable and 7.181 outage.
+- No demonstrated advantage from forgetting in these runs. Zero rejections and zero logged constraint violations were observed.
+- Evidence: experiment_runner/results/evaluation_01/summary.csv, confidence_intervals.csv, config.json, source.json, and individual raw run folders.
+Limitations and pending work
+- These are mock-simulator integration results, not the full S1-S6 research evaluation.
+- Adaptation time, deepest dip, lost goodput and ablations remain pending.
+- Upstream energy conversion, GPU-cost omission and timing conventions need correction/review. Cost/energy claims remain provisional.
+- Integrate Parikshit's simulator, finalize metric conventions, produce figures with CIs, and complete report analysis.
