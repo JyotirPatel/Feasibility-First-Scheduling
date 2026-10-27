@@ -1,0 +1,5 @@
+# Downloaded raw data (data_sources/download_data.py); only data/processed/ is committed
+data/raw/
+# Local tool caches
+.ruff_cache/
+__pycache__/

@@ -1,0 +1,9 @@
+# S2 — traffic burst (brief §5): the arrival rate jumps 3x for 120 s at t0.
+# simulator/workload.py adds a second stream of requests at twice the base rate during the burst,
+# so the requests outside the burst are the same as in S1.
+name: s2_traffic_burst
+description: The arrival rate is 3 times the base rate from t0 for 120 s.
+duration_s: 600
+t0_s: 200
+events:
+  - {kind: arrival_rate, at_s: 200, factor: 3.0, duration_s: 120}

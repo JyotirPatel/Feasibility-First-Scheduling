@@ -1,0 +1,76 @@
+# Real public data behind the simulator — owner: Parikshit
+#
+# download_data.py fetches these files into ../data/raw/ (not in git).
+# preprocess_traces.py turns them into the small files in ../data/processed/ (in git), which is all the
+# simulator reads. Every URL below was checked on 2026-10-27.
+
+azure_llm_traces:
+  what: request arrival times and token counts (brief §5)
+  dataset: Azure LLM inference traces 2023 (one hour of production requests, 2023-11-16)
+  page: https://github.com/Azure/AzurePublicDataset/blob/master/AzureLLMInferenceDataset2023.md
+  license: CC-BY (Creative Commons Attribution), per the dataset page
+  cite: >-
+    P. Patel, E. Choukse, C. Zhang, A. Shah, I. Goiri, S. Maleki, R. Bianchini.
+    Splitwise: Efficient generative LLM inference using phase splitting. ISCA 2024.
+  files:
+    conv:
+      url: https://raw.githubusercontent.com/Azure/AzurePublicDataset/master/data/AzureLLMInferenceTrace_conv.csv
+      sha256: 2f1e5b666d4e3055fdbba98598ce2ec307767b9064e03e2fa46676dbcc7d0bf8
+    code:
+      url: https://raw.githubusercontent.com/Azure/AzurePublicDataset/master/data/AzureLLMInferenceTrace_code.csv
+      sha256: 54e9a6d2a4bd06ba1e060304b900abbc74cbea53de96506e60fe5bb4f2277fb6
+  # Llama-3-8B's context window (max_position_embeddings in its config.json). A request whose
+  # input + output tokens exceed it cannot run on this model, so preprocessing drops it.
+  context_limit_tokens: 8192
+
+nyiso:
+  what: electricity price at the New York sites
+  dataset: NYISO day-ahead market zonal LBMP, hourly, $/MWh, Eastern prevailing time
+  page: https://www.nyiso.com/energy-market-operational-data
+  # one ZIP per month; {month} is YYYYMM
+  url: https://mis.nyiso.com/public/csv/damlbmp/{month}01damlbmp_zone_csv.zip
+  months: ["202404"]
+  timezone: America/New_York
+  zones: ["N.Y.C.", "WEST", "CAPITL", "LONGIL", "CENTRL"]
+
+caiso:
+  what: electricity price at the California sites
+  dataset: CAISO OASIS day-ahead LMP at the trading hubs, hourly, $/MWh
+  page: http://oasis.caiso.com/
+  url: >-
+    http://oasis.caiso.com/oasisapi/SingleZip?resultformat=6&queryname=PRC_LMP&version=12&startdatetime={start}&enddatetime={end}&market_run_id=DAM&node={nodes}
+  start_utc: 20240401T07:00-0000
+  end_utc: 20240501T07:00-0000
+  hubs: {NP15: TH_NP15_GEN-APND, SP15: TH_SP15_GEN-APND}
+
+# The two UTC days kept in prices_hourly.csv.
+# 2024-04-17 is the weekday of April 2024 whose prices at 19:00 UTC and 02:00 UTC (next day) are
+# closest to the month's median at those hours. It shows the usual spring pattern that S3 needs:
+# California is cheapest at midday (solar) and New York is cheapest in the evening.
+price_days_utc: ["2024-04-17", "2024-04-18"]
+
+wonderproxy:
+  what: network delay between user cities and sites
+  dataset: WonderNetwork / WonderProxy global ping data, 2020-07-19 and 2020-07-20 (hourly pings between ~250 servers)
+  page: https://wonderproxy.com/blog/a-day-in-the-life-of-the-internet/
+  terms: the page asks users to credit and link WonderProxy as the data source
+  pings_url: https://wp-public-data.s3.amazonaws.com/pings/pings-2020-07-19-2020-07-20.csv.gz
+  pings_sha256: 46617678d0180d784cdfb0eabb3e5918952fc7cb25d64a4a0c11fdd9278d9a97
+  servers_url: https://wp-public-data.s3.amazonaws.com/pings/servers-2020-07-19.csv
+  servers_sha256: 626fdc4be97cdbfd4da9fae20b5a7f58abf1220e34859b5d21566be18b9b508c
+  # city name used in configs -> WonderProxy server id (servers-2020-07-19.csv)
+  cities:
+    Manhattan: 114      # New York City
+    GardenCity: 13      # Long Island (the file lists it as "New York", location Garden City)
+    Buffalo: 96
+    Albany: 145         # location Latham
+    Syracuse: 235
+    SanJose: 23
+    Fremont: 30
+    Sacramento: 93
+    LosAngeles: 37
+    SanDiego: 73
+    Chicago: 22
+    SanFrancisco: 100
+    Dallas: 12
+    Atlanta: 18

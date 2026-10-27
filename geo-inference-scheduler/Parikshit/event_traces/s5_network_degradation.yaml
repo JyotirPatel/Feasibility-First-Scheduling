@@ -1,0 +1,7 @@
+# S5 — network degradation (brief §5): the delay to one popular node rises sharply (+80 ms).
+name: s5_network_degradation
+description: The delay from every user region to us-east-nyc rises by 80 ms at t0.
+duration_s: 600
+t0_s: 200
+events:
+  - {kind: rtt, at_s: 200, node: us-east-nyc, delta_ms: 80.0}

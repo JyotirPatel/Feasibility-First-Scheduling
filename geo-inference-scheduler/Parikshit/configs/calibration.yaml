@@ -1,0 +1,60 @@
+# Inputs to the latency-model calibration — owner: Parikshit
+#
+# simulator/calibration.py turns these into per-GPU constants: a_p, b_p, t_tok, c, capacity and
+# KV-cache size. `python3 simulator/calibration.py` prints them with the fit residuals, and
+# simulator/NUMBERS.md explains every step. All sources were read on 2026-10-27.
+
+# The model every node serves. Its values come from Meta-Llama-3-8B's config.json, read from the
+# ungated copy at huggingface.co/NousResearch/Meta-Llama-3-8B.
+model:
+  name: llama-3-8b
+  # 8,030,261,248, counted from config.json: embeddings 128,256 x 4,096, input and output not tied
+  # (tie_word_embeddings: false), plus 32 layers of attention (32 query, 8 KV heads) and MLP (14,336)
+  params: 8.03e9
+  bytes_per_param: 2            # bf16 weights
+  layers: 32                    # Meta-Llama-3-8B config.json: num_hidden_layers
+  kv_heads: 8                   # num_key_value_heads (grouped-query attention)
+  head_dim: 128                 # hidden_size / num_attention_heads = 4096 / 32
+  kv_bytes_per_value: 2         # bf16 KV cache
+  max_context_tokens: 8192      # max_position_embeddings
+
+gpus:
+  # NVIDIA product pages. Dense BF16 is half of the "with sparsity" figure NVIDIA headlines.
+  # Server power: NVIDIA DGX H100 / DGX A100 user guides ("10.2 kW max", "6.5 kW max").
+  # Rent: Lambda's public price list, 8-GPU instances, per GPU and hour.
+  H100-SXM:
+    memory_gb: 80
+    memory_bandwidth_tb_s: 3.35
+    bf16_dense_tflops: 989.5    # 1,979 with sparsity
+    server_gpus: 8
+    server_max_power_kw: 10.2
+    rent_usd_per_gpu_hr: 3.99
+  A100-80GB-SXM:
+    memory_gb: 80
+    memory_bandwidth_tb_s: 2.039
+    bf16_dense_tflops: 312      # 624 with sparsity
+    server_gpus: 8
+    server_max_power_kw: 6.5
+    rent_usd_per_gpu_hr: 2.79
+
+benchmark:
+  # E2E Networks, "Inference Benchmarks" (docs.e2enetworks.com/docs/tir/benchmarks/inference_benchmarks/):
+  # vLLM serving Llama 3.1 8B (same layers and KV heads as Llama 3 8B) on one H100, four workloads.
+  gpu: H100-SXM
+  ttft_ms:                      # [input tokens, TTFT in ms]
+    - [128, 28.84]              # simple chat, 128 in / 128 out
+    - [1024, 92.74]             # classification, 1024 / 30
+    - [2024, 200.06]            # summarization / RAG, 2024 / 128
+    - [200, 47.25]              # creative writing, 200 / 2024
+  saturated:                    # [input tokens, output tokens, completed requests per second]; each run was offered
+    - [128, 128, 35.04]         # more requests than it completed (64, 24, 12 and 8 per second), so these are the
+    - [1024, 30, 19.03]         # GPU's throughput limits for those requests
+    - [2024, 128, 8.95]
+    - [200, 2024, 3.42]
+  tpot_at_saturation_ms: [22.27, 22.07, 35.51, 21.57]   # time per output token in the same four runs
+
+serving:
+  gpu_memory_utilization: 0.9         # vLLM's default share of GPU memory for weights + KV cache
+  # Assumed share of peak memory bandwidth that decoding reaches. No published low-load measurement
+  # was found for this model; calibrate it against one real vLLM run (brief §5 calls that optional).
+  decode_bandwidth_efficiency: 0.7

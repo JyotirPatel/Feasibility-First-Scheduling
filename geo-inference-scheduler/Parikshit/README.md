@@ -98,3 +98,74 @@ Also write unit tests confirming the simulator produces valid telemetry at each 
 ## Report / Presentation Section
 
 Simulator and Workload section — explains why the simulated numbers are realistic and how traces were generated.
+
+---
+
+## Implementation (what is in this folder now)
+
+Every task above is implemented and tested. Each folder has its own README with details.
+
+| Task | Where | Status |
+|---|---|---|
+| 1. Node simulator (SimPy, 5 or 10 nodes) | `simulator/` | done: the brief's latency model, queue, KV-cache admission, power, temperature, prices, up / down / warming |
+| Latency constants "fitted per node type" | `simulator/calibration.py`, `configs/calibration.yaml` | done: fitted to a published H100 benchmark and scaled by NVIDIA's specs (H100, A100) |
+| 2. Real data sources | `data_sources/`, `data/processed/` | done: Azure LLM traces, NYISO and CAISO day-ahead prices, WonderProxy pings; download + preprocess scripts; processed files in git, byte-for-byte reproducible |
+| 3. Six change-event traces | `event_traces/s1_stable.yaml` … `s6_outage_recovery.yaml` | done: 600 s runs, t0 = 200 s; one seed fixes every request |
+| 4. Telemetry schema v1 | `telemetry/telemetry_schema_v1.json`, `telemetry/schema.py` | done: JSON Schema plus a Python validator; every tick of every scenario is tested against both and against Krupesh's router |
+| Note on how each number is produced | `simulator/NUMBERS.md` | done |
+| Running with Krupesh's router | `simulator/run_scenario.py` | done: in-process and over HTTP; his `validate_log()` accepts the decision logs |
+| Report section draft | `report/simulator_section.md` | draft for Riya to merge |
+| Tests | `tests/` | 122 tests (`python3 -m pytest geo-inference-scheduler/Parikshit/tests -q`); ruff lint + format clean |
+
+Install: `python3 -m pip install -r geo-inference-scheduler/Parikshit/requirements.txt` (Python 3.11+). For the router runs, also install `geo-inference-scheduler/Krupesh/.../requirements.txt`.
+
+### Run one scenario
+
+From the `Parikshit/` folder:
+
+```bash
+python3 simulator/run_scenario.py --scenario s6_outage_recovery --policy jyotir:least_load --seed 0
+python3 simulator/run_scenario.py --scenario s2_traffic_burst --policy sur:sw_linucb --seed 3 --out-dir runs/x
+python3 simulator/calibration.py              # the fitted latency constants
+python3 data_sources/download_data.py         # fetch the raw public data (not in git)
+python3 data_sources/preprocess_traces.py     # rebuild data/processed/ from it
+```
+
+A 600-s run of the 5-node setup (about 48,000 requests) takes about 7–15 s.
+
+### For each teammate
+
+- **Krupesh (router).**
+  - The simulator drives your engine exactly like your `MockCluster`: `ingest_telemetry` every 1-s tick, `route` per arrival and `feedback` per finished or failed request (`failed=True`).
+  - It does this in-process and through your `HttpRouter`, which makes identical decisions (`tests/test_router_integration.py`).
+  - It fills the `true_state_violation` column through `engine.annotate`.
+  - Telemetry includes the optional `kv_capacity_tokens`, which your F2 fix needs.
+  - Your upload currently sits in `Krupesh/geo-inference-scheduler/Krupesh/`; the simulator finds it there or in `Krupesh/`.
+- **Jyotir (filter).**
+  - Every record has the schema's 14 fields and passes your filter.
+  - `true_state_violation` shows where the router's 1-s-old view and the truth disagree, including warming nodes your filter does not check yet (F1).
+- **Sur (policies).**
+  - `sur:linucb` and `sur:sw_linucb` run on the simulator through Sur's router plug-in, with Sur's reward.
+  - The window sweep can now be re-run here instead of on Sur's stand-in.
+- **Riya (experiments).**
+  - One command per (scenario, policy, seed). `--out-dir` writes `decision_log.(parquet|csv)` and `run_summary.json`, with exit codes 0 / 1 / 2 like Krupesh's runner.
+  - The same seed gives the same requests for every policy, and S1–S6 share their base requests, so comparisons are paired.
+  - In `experiment_runner/run_evaluation.py`, the mock cluster can be replaced by this simulator, with your engine unchanged:
+    - with `Parikshit/` on `sys.path`, `Simulation(KrupeshRouter(engine), "s4_thermal_throttle", seed).run()` replaces `MockCluster(engine, ...).run()`;
+    - `simulator.events.change_times(load_scenario(name))` gives the change times for your `events.json` (t0, plus the return in S6).
+  - As in your runner, the router's reward is built from the policy's own reward section. `run_summary.json` includes the policy's counters, and a reward disagreement makes the run invalid (exit code 2).
+
+### Things found while building this (to discuss with the team)
+
+1. **The bandit has something real to learn here.** An A100 needs about 424 ms to start the mean request (1,437 input tokens), so it misses the 250 ms interactive SLO for long prompts, while an H100 needs about 143 ms (`simulator/NUMBERS.md`). The request-length × node-type interaction is exactly what a contextual policy is for.
+2. **The router's telemetry is up to 1 s old, and that matters.** During S2's burst, requests reach nodes whose *true* power headroom had already fallen below Jyotir's 2 kW limit after the last tick, and in S4 nodes that had already crossed 85 °C. The `true_state_violation` column counts these. Counting the router's own in-flight placements (Krupesh's local load accounting) does not cover power or temperature.
+3. **Assumptions to confirm** with one real vLLM run (brief §5, optional): the decode bandwidth share (0.7), GPU temperature and power behaviour, and the warm-up after a restart. They are listed in `simulator/NUMBERS.md` §9.
+4. **Prices are wholesale.** California's midday day-ahead prices are negative, so they are floored at 0. A site's real tariff adds delivery charges, which would shrink the S3 price gap; a fixed adder could be added if the team wants retail-like levels.
+5. **S2's burst does not raise TTFT under an even spread.** At 80 requests/s the 3× burst (≈ 240/s) stays below the 5-node maximum of ≈ 278/s.
+   - In the brief's model, prefill has no load term, so TTFT rises only when a node runs out of slots or KV cache.
+   - With least-load, the share of requests meeting their SLO stays at ~73 % during the burst. Slot use rises from 12 % to 67 %, and A100 nodes hit the power limit.
+   - The burst does hurt policies that concentrate traffic on few nodes.
+   - If the team wants S2 to stress TTFT for every policy, two options:
+     - raise `rate_rps` to ~100, so the burst (≈ 300/s) exceeds the maximum and queues build and then drain;
+     - or add a load term to prefill (a change to the brief's model).
+   - `python3 simulator/scenario_effects.py` shows the effect of each scenario.

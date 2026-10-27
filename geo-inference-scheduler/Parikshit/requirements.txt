@@ -1,0 +1,10 @@
+# Parikshit's simulator (Python >= 3.11). Install: python3 -m pip install -r requirements.txt
+# The router runs also need Krupesh's requirements (fastapi, httpx, pandas, pyarrow, ...).
+simpy>=4.1
+numpy>=1.26
+pandas>=2.1          # data_sources/ only
+pyyaml>=6.0
+pydantic>=2.5
+certifi              # verified HTTPS downloads on Python builds without a CA store
+jsonschema>=4.20     # tests: the telemetry JSON Schema
+pytest>=8

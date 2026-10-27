@@ -1,0 +1,36 @@
+# 5-node setup — owner: Parikshit
+#
+# Each node is one 8-GPU server (DGX H100 or DGX A100 class) serving Llama-3-8B, at a real US site.
+# - city: a WonderProxy server city. Its pings give the delay to every user region (data/processed/rtt_ms.csv).
+# - price_zone: the day-ahead market zone of that site (data/processed/prices_hourly.csv).
+# - gpu: a GPU type of configs/calibration.yaml. Its latency constants, capacity and KV cache come from
+#   simulator/calibration.py, and its power and rent come from calibration.yaml.
+# simulator/NUMBERS.md explains every number below.
+
+tick_s: 1.0                     # telemetry period (handbook §5.2: one record per node per tick, 1 s)
+
+# Real prices of this hour apply from the start. 19:00 UTC is 12:00 in California and 15:00 in New York,
+# when California's solar makes it the cheapest region. S3 switches to the evening (event_traces/s3_price_shift.yaml).
+price_hour_utc: "2024-04-17T19:00:00Z"
+energy_price_floor_usd_kwh: 0.0 # midday California prices are negative; the telemetry contract needs >= 0
+
+min_rtt_ms: 2.0                 # a user in the node's own city (a server pinging itself reads ~0 ms)
+
+power:
+  idle_fraction: 0.3            # assumed: an idle server draws 30 % of its max power
+  provisioning_margin: 0.25     # assumed: the site can supply 25 % more than the server's max
+
+thermal:                        # assumed GPU thermal behaviour (no per-site measurements exist)
+  inlet_c: 25.0                 # cooling air at the server inlet; the DGX operating range is 5-30 °C
+  rise_at_full_power_c: 50.0    # 25 °C inlet -> 75 °C at full power, 40 °C idle
+  tau_s: 30.0                   # time constant of the temperature response
+  throttle_start_c: 80.0        # clocks start dropping here
+  throttle_full_c: 90.0         # and the GPU runs max_slowdown times slower from here
+  max_slowdown: 2.0
+
+nodes:
+  - {node_id: us-east-nyc, city: Manhattan, price_zone: "NYISO:N.Y.C.", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-east-buf, city: Buffalo, price_zone: "NYISO:WEST", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-east-alb, city: Albany, price_zone: "NYISO:CAPITL", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-sjc, city: SanJose, price_zone: "CAISO:NP15", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-lax, city: LosAngeles, price_zone: "CAISO:SP15", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}

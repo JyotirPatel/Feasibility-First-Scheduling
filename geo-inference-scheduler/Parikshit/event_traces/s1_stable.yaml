@@ -1,0 +1,6 @@
+# S1 — stable (brief §5): nothing changes. Checks normal behaviour and the cost of exploring.
+name: s1_stable
+description: Nothing changes during the run.
+duration_s: 600          # brief §5: every run is 600 s of simulated time
+t0_s: 200                # the change time of every scenario (S1 has none; metrics still use it)
+events: []
