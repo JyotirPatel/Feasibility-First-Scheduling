@@ -113,11 +113,12 @@ def _check_node(request: dict, node: dict, config: dict) -> str | None:
     # Fall back to the fraction check when capacity is not yet available.
     kv_capacity = node.get("kv_capacity_tokens")
     if kv_capacity and kv_capacity > 0:
+        kv_limit = config.get("kv_cache_max_frac", 0.90)
         tokens_needed = (
             request.get("input_tokens", 0) + request.get("expected_output_tokens", 0)
         )
         kv_used_tokens = node.get("kv_used_frac", 0.0) * kv_capacity
-        if kv_used_tokens + tokens_needed > kv_capacity:
+        if kv_used_tokens + tokens_needed > kv_capacity * kv_limit:
             return "memory_full"
     else:
         # fallback: reject if already past the configured fill fraction

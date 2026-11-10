@@ -307,3 +307,19 @@ class TestTokenAwareMemoryCheck:
         allowed, rejected = feasibility_filter(BASE_REQUEST, [node], BASE_CONFIG)
         assert len(allowed) == 0
         assert rejected[0]["reason"] == "memory_full"
+
+    def test_token_check_respects_kv_cache_max_frac(self):
+        # Regression: token-exact path must enforce kv_cache_max_frac (0.90), not 100%.
+        # Node at 85 % fill with capacity 1000 → 850 tokens used, 150 tokens free before the
+        # 90 % cap. A request needing 100 tokens would push total to 950/1000 (95 %) — above
+        # the 0.90 limit — and must be rejected.
+        node = _make_healthy_node("near-cap-node")
+        node["kv_capacity_tokens"] = 1000
+        node["kv_used_frac"] = 0.85         # 850 tokens used; 100 tokens left under 90 % cap
+        small_request = {**BASE_REQUEST, "input_tokens": 60, "expected_output_tokens": 50}  # 110 tokens
+        allowed, rejected = feasibility_filter(small_request, [node], BASE_CONFIG)
+        assert len(allowed) == 0, (
+            "Request that would push KV cache past kv_cache_max_frac must be rejected "
+            "even though absolute tokens (950) are below total capacity (1000)"
+        )
+        assert rejected[0]["reason"] == "memory_full"
