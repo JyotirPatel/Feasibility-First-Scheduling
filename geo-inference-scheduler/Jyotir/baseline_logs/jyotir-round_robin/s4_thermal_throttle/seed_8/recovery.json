@@ -1,0 +1,30 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 0.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 51.47666666666667,
+    "threshold_rps": 46.329,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 42.0,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": null,
+    "lost_goodput_status": "unavailable: matched oracle required",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.2,
+        "pre_event_requests": 958,
+        "pre_event_all_arrivals": 4790,
+        "first_120s_arrival_share": 0.16219654404749284,
+        "first_120s_requests": 1530,
+        "first_120s_all_arrivals": 9433,
+        "steady_arrival_share": 0.12460334250052887,
+        "steady_requests": 589,
+        "steady_all_arrivals": 4727
+      }
+    }
+  }
+]

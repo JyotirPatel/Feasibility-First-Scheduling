@@ -1,0 +1,19 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": true,
+    "adaptation_time_s": 0.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 58.73,
+    "threshold_rps": 52.857,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 52.0,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": null,
+    "lost_goodput_status": "unavailable: matched oracle required",
+    "node_traffic_shares": {},
+    "interpretation": "pseudo-event noise diagnostic; no actual change"
+  }
+]

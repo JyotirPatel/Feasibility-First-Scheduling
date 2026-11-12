@@ -1,0 +1,11 @@
+# S3 — price / renewable shift (brief §5): the cheapest nodes' price jumps and another region becomes cheap.
+# At t0 every node switches from the real prices of 2024-04-17 19:00 UTC (noon in California, solar: the
+# California hubs are cheapest) to those of 2024-04-18 02:00 UTC (7 pm in California): the California
+# hubs jump to ~$46-50/MWh and New York's zones (~$23-27/MWh) become the cheap ones. It compresses the
+# real evening ramp of that day into one step.
+name: s3_price_shift
+description: Prices switch from the real midday hour to the real evening hour of 2024-04-17 (Pacific time).
+duration_s: 600
+t0_s: 200
+events:
+  - {kind: energy_prices, at_s: 200, hour_utc: "2024-04-18T02:00:00Z"}

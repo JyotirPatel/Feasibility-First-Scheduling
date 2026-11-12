@@ -1,0 +1,39 @@
+{
+  "scenario": "s6_outage_recovery",
+  "seed": 9,
+  "requests": 47700,
+  "routed": 47700,
+  "rejected": 0,
+  "completed": 47666,
+  "failed": 34,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.14949252136752136,
+  "routed_by_node": {
+    "us-east-alb": 8374,
+    "us-east-buf": 8373,
+    "us-east-nyc": 8240,
+    "us-west-lax": 8220,
+    "us-west-sjc": 14493
+  },
+  "end_time_s": 612.9337570581947,
+  "events": [
+    {
+      "kind": "node_down",
+      "at_s": 200.0,
+      "node": "us-east-nyc",
+      "failed_requests": 34
+    },
+    {
+      "kind": "node_return",
+      "at_s": 400.0,
+      "node": "us-east-nyc",
+      "warm_until_s": 460.0
+    },
+    {
+      "kind": "warm_done",
+      "at_s": 460.0,
+      "node": "us-east-nyc"
+    }
+  ]
+}

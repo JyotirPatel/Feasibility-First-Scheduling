@@ -1,0 +1,17 @@
+{
+  "simulator": "parikshit",
+  "policies": [
+    "sur:sw_linucb"
+  ],
+  "scenarios": [
+    "s1_stable",
+    "s2_traffic_burst",
+    "s6_outage_recovery"
+  ],
+  "seeds": [
+    0
+  ],
+  "rate_rps": 80,
+  "nodes": 5,
+  "goodput_time_basis": "arrival"
+}

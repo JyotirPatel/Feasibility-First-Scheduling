@@ -1,0 +1,39 @@
+{
+  "anchors": {
+    "t0": 200.0,
+    "return": 400.0
+  },
+  "events": [
+    {
+      "at_s": 200.0,
+      "kind": "node_down",
+      "node": "us-east-nyc"
+    },
+    {
+      "at_s": 400.0,
+      "kind": "node_return",
+      "node": "us-east-nyc",
+      "warmup_s": 60.0,
+      "warmup_slowdown": 3.0
+    }
+  ],
+  "actual_events": [
+    {
+      "kind": "node_down",
+      "at_s": 200.0,
+      "node": "us-east-nyc",
+      "failed_requests": 23
+    },
+    {
+      "kind": "node_return",
+      "at_s": 400.0,
+      "node": "us-east-nyc",
+      "warm_until_s": 460.0
+    },
+    {
+      "kind": "warm_done",
+      "at_s": 460.0,
+      "node": "us-east-nyc"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "scenario": "s1_stable",
+  "seed": 3,
+  "requests": 47736,
+  "routed": 47736,
+  "rejected": 0,
+  "completed": 47736,
+  "failed": 0,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.1980811403508772,
+  "routed_by_node": {
+    "us-west-lax": 18002,
+    "us-west-sjc": 29734
+  },
+  "end_time_s": 621.9117808076824,
+  "events": []
+}

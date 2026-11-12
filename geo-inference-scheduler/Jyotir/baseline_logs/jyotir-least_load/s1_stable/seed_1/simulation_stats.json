@@ -1,0 +1,21 @@
+{
+  "scenario": "s1_stable",
+  "seed": 1,
+  "requests": 47624,
+  "routed": 47624,
+  "rejected": 0,
+  "completed": 47624,
+  "failed": 0,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.12387792397660818,
+  "routed_by_node": {
+    "us-east-alb": 7371,
+    "us-east-buf": 7495,
+    "us-east-nyc": 12944,
+    "us-west-lax": 7272,
+    "us-west-sjc": 12542
+  },
+  "end_time_s": 612.6475897976401,
+  "events": []
+}

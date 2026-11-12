@@ -1,0 +1,11 @@
+# S6 — outage + recovery (brief §5): a node goes down at t0 and returns at 400 s, but needs a warm-up before
+# it is fully fast. Requests on the node when it fails come back as failures (failed=True). It returns as
+# "warming", 3x slower at first and back to normal speed after 60 s, then reports "up". The 60 s and 3x
+# are assumptions (reloading the model and rebuilding caches); change them here.
+name: s6_outage_recovery
+description: us-east-nyc fails at t0 and returns at 400 s, warming up for 60 s.
+duration_s: 600
+t0_s: 200
+events:
+  - {kind: node_down, at_s: 200, node: us-east-nyc}
+  - {kind: node_return, at_s: 400, node: us-east-nyc, warmup_s: 60.0, warmup_slowdown: 3.0}

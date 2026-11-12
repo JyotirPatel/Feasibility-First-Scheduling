@@ -1,0 +1,20 @@
+{
+  "anchors": {
+    "t0": 200.0
+  },
+  "events": [
+    {
+      "at_s": 200.0,
+      "kind": "arrival_rate",
+      "factor": 3.0,
+      "duration_s": 120.0
+    }
+  ],
+  "actual_events": [
+    {
+      "kind": "arrival_rate",
+      "at_s": 200.0,
+      "note": "arrival rate \u00d7 3.0 for 120.0 s (built into the workload)"
+    }
+  ]
+}

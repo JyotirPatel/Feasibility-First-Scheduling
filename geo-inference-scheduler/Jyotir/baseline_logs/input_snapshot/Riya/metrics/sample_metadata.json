@@ -1,0 +1,8 @@
+{
+  "data_type": "synthetic_verification",
+  "policy": "example_policy",
+  "scenario": "stable",
+  "seed": 0,
+  "run_start_s": 0,
+  "run_end_s": 10
+}

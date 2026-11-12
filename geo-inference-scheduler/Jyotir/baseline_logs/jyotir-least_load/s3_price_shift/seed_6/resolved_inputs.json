@@ -1,0 +1,131 @@
+{
+  "scenario": {
+    "name": "s3_price_shift",
+    "description": "Prices switch from the real midday hour to the real evening hour of 2024-04-17 (Pacific time).",
+    "duration_s": 600.0,
+    "t0_s": 200.0,
+    "events": [
+      {
+        "at_s": 200.0,
+        "kind": "energy_prices",
+        "hour_utc": "2024-04-18 02:00:00+00:00"
+      }
+    ]
+  },
+  "cluster": {
+    "tick_s": 1.0,
+    "price_hour_utc": "2024-04-17 19:00:00+00:00",
+    "min_rtt_ms": 2.0,
+    "energy_price_floor_usd_kwh": 0.0,
+    "power": {
+      "idle_fraction": 0.3,
+      "provisioning_margin": 0.25
+    },
+    "thermal": {
+      "inlet_c": 25.0,
+      "rise_at_full_power_c": 50.0,
+      "tau_s": 30.0,
+      "throttle_start_c": 80.0,
+      "throttle_full_c": 90.0,
+      "max_slowdown": 2.0
+    },
+    "nodes": [
+      {
+        "node_id": "us-east-nyc",
+        "city": "Manhattan",
+        "price_zone": "NYISO:N.Y.C.",
+        "gpu": "H100-SXM",
+        "servers": 1,
+        "models_loaded": [
+          "llama-3-8b"
+        ]
+      },
+      {
+        "node_id": "us-east-buf",
+        "city": "Buffalo",
+        "price_zone": "NYISO:WEST",
+        "gpu": "A100-80GB-SXM",
+        "servers": 1,
+        "models_loaded": [
+          "llama-3-8b"
+        ]
+      },
+      {
+        "node_id": "us-east-alb",
+        "city": "Albany",
+        "price_zone": "NYISO:CAPITL",
+        "gpu": "A100-80GB-SXM",
+        "servers": 1,
+        "models_loaded": [
+          "llama-3-8b"
+        ]
+      },
+      {
+        "node_id": "us-west-sjc",
+        "city": "SanJose",
+        "price_zone": "CAISO:NP15",
+        "gpu": "H100-SXM",
+        "servers": 1,
+        "models_loaded": [
+          "llama-3-8b"
+        ]
+      },
+      {
+        "node_id": "us-west-lax",
+        "city": "LosAngeles",
+        "price_zone": "CAISO:SP15",
+        "gpu": "A100-80GB-SXM",
+        "servers": 1,
+        "models_loaded": [
+          "llama-3-8b"
+        ]
+      }
+    ]
+  },
+  "workload": {
+    "model": "llama-3-8b",
+    "rate_rps": 80,
+    "expected_output_error": 0.3,
+    "classes": {
+      "interactive": {
+        "trace": "azure_conv",
+        "share": 0.683,
+        "arrivals": "trace_gaps",
+        "ttft_slo_ms": 250.0
+      },
+      "batch": {
+        "trace": "azure_code",
+        "share": 0.317,
+        "arrivals": "poisson",
+        "ttft_slo_ms": 1000.0
+      }
+    },
+    "regions": {
+      "nyc": {
+        "city": "Manhattan",
+        "population": 20140470.0
+      },
+      "lax": {
+        "city": "LosAngeles",
+        "population": 13200998.0
+      },
+      "chi": {
+        "city": "Chicago",
+        "population": 9618502.0
+      },
+      "dfw": {
+        "city": "Dallas",
+        "population": 7637387.0
+      },
+      "atl": {
+        "city": "Atlanta",
+        "population": 6089815.0
+      },
+      "sfo": {
+        "city": "SanFrancisco",
+        "population": 4749008.0
+      }
+    }
+  },
+  "policy_config": null
+}

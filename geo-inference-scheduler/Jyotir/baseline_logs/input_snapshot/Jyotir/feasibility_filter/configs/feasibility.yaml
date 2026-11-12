@@ -1,0 +1,10 @@
+# Feasibility filter thresholds — owner: Jyotir
+# Change values here; never hardcode them in filter.py.
+# All changes must be agreed by the group before a run is finalised.
+
+temperature_limit_c: 85.0       # reject node if temperature >= this value
+power_headroom_min_kw: 2.0      # reject node if power headroom < this value
+kv_cache_max_frac: 0.90         # reject node if KV cache usage >= this fraction (0 to 1)
+
+allow_warming_nodes: true        # true = warming nodes are allowed but tagged
+                                 # false = warming nodes are rejected like down nodes

@@ -1,0 +1,20 @@
+{
+  "policy": "jyotir:power_of_two",
+  "scenario": "s2_traffic_burst",
+  "seed": 4,
+  "simulator": "parikshit",
+  "nodes": 5,
+  "duration_s": 600.0,
+  "rate_rps": 80,
+  "status": "ok",
+  "bundle_sha256": {
+    "metrics.json": "a5acf6d3efd20afed8a1eada6e0909802a36653e9e1564bb2d01bea3f218c100",
+    "resolved_inputs.json": "222fc09ec1fd3120f07f42a11cdbad0699f4b9328b1ba4343eb98cefeda919ab",
+    "events.json": "b3d80d406244dae53eabd26f10597405dd11397c932e8bb053504bca0bf527c9",
+    "config.json": "58526641a8d8077ad96354c33c505c4b031ca843d8d49978dd0cadcab4b4413e",
+    "goodput_curve.csv": "c847a81199cb56879b512879940bca8932dc7d32f275e3414b835f57e2ed3430",
+    "simulation_stats.json": "291910fcb5b2986f4d5cf6d67be4715a8bb1fd832cb5ab069ad6c94465247773",
+    "decision_log.csv": "e9d9bae9bc90d17c524f906997b7cd0485a42fee9896f59a147385c370e27b66",
+    "recovery.json": "bb8c7045a0c9d41bf1b9b918fe40860ec2c283c556ea011bade44b9915e3221f"
+  }
+}

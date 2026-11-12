@@ -1,0 +1,7 @@
+policy,n_seeds,positive_pseudo_adaptation_seeds,did_not_recover_seeds,positive_pseudo_delay_min_s,positive_pseudo_delay_max_s,false_delay_fraction_n,false_delay_fraction_mean,false_delay_fraction_ci_low,false_delay_fraction_ci_high,false_delay_fraction_ci_status
+jyotir:least_load,10,4,0,6.0,28.0,10,0.4,0.1,0.7,available
+jyotir:lowest_energy,10,7,0,1.0,30.0,10,0.7,0.4,1.0,available
+jyotir:min_rtt,10,5,0,4.0,28.0,10,0.5,0.2,0.8,available
+jyotir:power_of_two,10,4,0,4.0,27.0,10,0.4,0.1,0.7,available
+jyotir:round_robin,10,4,0,11.0,28.0,10,0.4,0.1,0.7,available
+jyotir:static_weighted,10,5,0,4.0,13.0,10,0.5,0.2,0.8,available

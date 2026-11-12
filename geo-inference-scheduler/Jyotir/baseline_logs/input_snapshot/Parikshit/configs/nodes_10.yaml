@@ -1,0 +1,33 @@
+# 10-node setup — owner: Parikshit
+#
+# The 5-node setup plus five more sites. Everything except the node list is the same as in
+# nodes_5.yaml (tests/test_configs.py checks this). See nodes_5.yaml for what each field means.
+
+tick_s: 1.0
+price_hour_utc: "2024-04-17T19:00:00Z"
+energy_price_floor_usd_kwh: 0.0
+min_rtt_ms: 2.0
+
+power:
+  idle_fraction: 0.3
+  provisioning_margin: 0.25
+
+thermal:
+  inlet_c: 25.0
+  rise_at_full_power_c: 50.0
+  tau_s: 30.0
+  throttle_start_c: 80.0
+  throttle_full_c: 90.0
+  max_slowdown: 2.0
+
+nodes:
+  - {node_id: us-east-nyc, city: Manhattan, price_zone: "NYISO:N.Y.C.", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-east-buf, city: Buffalo, price_zone: "NYISO:WEST", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-east-alb, city: Albany, price_zone: "NYISO:CAPITL", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-sjc, city: SanJose, price_zone: "CAISO:NP15", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-lax, city: LosAngeles, price_zone: "CAISO:SP15", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-east-lgi, city: GardenCity, price_zone: "NYISO:LONGIL", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-east-syr, city: Syracuse, price_zone: "NYISO:CENTRL", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-fmt, city: Fremont, price_zone: "CAISO:NP15", gpu: A100-80GB-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-sac, city: Sacramento, price_zone: "CAISO:NP15", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}
+  - {node_id: us-west-san, city: SanDiego, price_zone: "CAISO:SP15", gpu: H100-SXM, servers: 1, models_loaded: [llama-3-8b]}

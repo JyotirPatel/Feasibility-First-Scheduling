@@ -1,0 +1,27 @@
+{
+  "scenario": "s2_traffic_burst",
+  "seed": 2,
+  "requests": 67157,
+  "routed": 67157,
+  "rejected": 0,
+  "completed": 67157,
+  "failed": 0,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.24472953216374269,
+  "routed_by_node": {
+    "us-east-alb": 9725,
+    "us-east-buf": 9668,
+    "us-east-nyc": 19689,
+    "us-west-lax": 10169,
+    "us-west-sjc": 17906
+  },
+  "end_time_s": 612.5699638726295,
+  "events": [
+    {
+      "kind": "arrival_rate",
+      "at_s": 200.0,
+      "note": "arrival rate \u00d7 3.0 for 120.0 s (built into the workload)"
+    }
+  ]
+}

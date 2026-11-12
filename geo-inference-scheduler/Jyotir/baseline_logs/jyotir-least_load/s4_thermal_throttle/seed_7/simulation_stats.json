@@ -1,0 +1,28 @@
+{
+  "scenario": "s4_thermal_throttle",
+  "seed": 7,
+  "requests": 47686,
+  "routed": 47686,
+  "rejected": 0,
+  "completed": 47686,
+  "failed": 0,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.1358954678362573,
+  "routed_by_node": {
+    "us-east-alb": 8210,
+    "us-east-buf": 8340,
+    "us-east-nyc": 8446,
+    "us-west-lax": 8156,
+    "us-west-sjc": 14534
+  },
+  "end_time_s": 610.9074768268641,
+  "events": [
+    {
+      "kind": "inlet_temperature",
+      "at_s": 200.0,
+      "node": "us-east-nyc",
+      "inlet_c": 65.0
+    }
+  ]
+}

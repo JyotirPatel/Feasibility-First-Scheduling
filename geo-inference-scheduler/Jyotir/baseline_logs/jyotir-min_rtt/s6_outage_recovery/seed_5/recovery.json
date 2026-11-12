@@ -1,0 +1,58 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 30.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 45.940000000000005,
+    "threshold_rps": 41.346000000000004,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 38.4,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": null,
+    "lost_goodput_status": "unavailable: matched oracle required",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.4327226784586229,
+        "pre_event_requests": 2055,
+        "pre_event_all_arrivals": 4749,
+        "first_120s_arrival_share": 0.0,
+        "first_120s_requests": 0,
+        "first_120s_all_arrivals": 9472,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4807
+      }
+    }
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 32.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 59.656666666666666,
+    "threshold_rps": 53.691,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 42.2,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": null,
+    "lost_goodput_status": "unavailable: matched oracle required",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4769,
+        "first_120s_arrival_share": 0.4209001551991723,
+        "first_120s_requests": 4068,
+        "first_120s_all_arrivals": 9665,
+        "steady_arrival_share": 0.4161323681489142,
+        "steady_requests": 2012,
+        "steady_all_arrivals": 4835
+      }
+    }
+  }
+]

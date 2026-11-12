@@ -1,0 +1,42 @@
+# Workload: which requests arrive, how often and from where — owner: Parikshit
+# simulator/workload.py turns this, the processed Azure traces and a seed into the run's requests.
+# The same seed gives the same requests for every policy (brief §8).
+
+model: llama-3-8b
+
+# Mean arrivals per second over the whole cluster (S1). The 5-node setup's maximum throughput for the
+# mean request is ~278 requests/s (simulator/NUMBERS.md), so 80 is ~29 % load and S2's 3x burst ~86 %.
+# For the 10-node setup (~614 requests/s) use about 177 for the same load: run_scenario.py --rate 177.
+rate_rps: 80
+
+# The router's estimate of a request's output length is the true length times U(1 - e, 1 + e)
+# (Krupesh's mock simulator uses the same ±30 % spread). The node always generates the true length.
+expected_output_error: 0.3
+
+classes:
+  interactive:                  # chat requests: the Azure conversation trace
+    trace: azure_conv
+    share: 0.683                # the two traces' own rates: 5.530 / (5.530 + 2.566) requests/s
+    arrivals: trace_gaps        # inter-arrival gaps resampled from the trace, rescaled to the class rate
+    ttft_slo_ms: 250            # the slides' SLO: first token within 250 ms
+  batch:                        # long prompts, short answers: the Azure code trace's token mix
+    trace: azure_code
+    share: 0.317
+    # The code trace arrives in on/off bursts (72 % of its hour lies in gaps longer than 5 s), which
+    # would make the stable scenario unstable. Its token mix is kept; its arrivals are a steady
+    # Poisson stream at the class rate.
+    arrivals: poisson
+    ttft_slo_ms: 1000
+
+# User regions: the WonderProxy city whose pings give the delay, and the 2020 Census population of the
+# metro area. Each request comes from a region with probability ∝ population. Sources:
+# - the U.S. Census Bureau's chart of the top 50 metro areas
+#   (census.gov/content/dam/Census/library/visualizations/2022/comm/nfl-top-50-metro-areas.pdf);
+# - for San Francisco, New Geography's table of the same 2020 counts (newgeography.com/files/2020census-major-metro.pdf).
+regions:
+  nyc: {city: Manhattan, population: 20140470}       # New York-Newark-Jersey City
+  lax: {city: LosAngeles, population: 13200998}      # Los Angeles-Long Beach-Anaheim
+  chi: {city: Chicago, population: 9618502}          # Chicago-Naperville-Elgin
+  dfw: {city: Dallas, population: 7637387}           # Dallas-Fort Worth-Arlington
+  atl: {city: Atlanta, population: 6089815}          # Atlanta-Sandy Springs-Alpharetta
+  sfo: {city: SanFrancisco, population: 4749008}     # San Francisco-Oakland-Berkeley

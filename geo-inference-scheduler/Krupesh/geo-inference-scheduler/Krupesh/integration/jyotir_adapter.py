@@ -10,10 +10,8 @@ read-only and never modified. The adapter only translates types:
 Limits come from Jyotir's own config file Jyotir/feasibility_filter/configs/feasibility.yaml
 (read with his load_config), so there is no second copy of his thresholds.
 
-Known behaviour of the original, documented for Jyotir (NOT changed here):
-  F1  a node with status "warming" returns before the model/memory/power/temperature
-      rules run, so a hot or full warming node is allowed.
-  F2  the memory rule ignores the size of the request (only kv_used_frac >= limit).
+Jyotir's filter as of commit 59b63af+: warming nodes run through all 5 rules before
+being tagged; the memory rule enforces kv_cache_max_frac (not 100 % capacity).
 """
 
 from __future__ import annotations
@@ -26,7 +24,7 @@ from typing import Any
 from api_contract.types import FilterFn, FilterResult, NodeState, Outcome, Request
 from router_service.policy_base import Policy
 
-JYOTIR_DIR = Path(__file__).resolve().parents[2] / "Jyotir"
+JYOTIR_DIR = Path(__file__).resolve().parents[4] / "Jyotir"
 
 
 def _load(module: str):

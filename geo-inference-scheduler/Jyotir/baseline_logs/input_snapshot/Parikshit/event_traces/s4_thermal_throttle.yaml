@@ -1,0 +1,12 @@
+# S4 — thermal throttle (brief §5): one busy node gets hot, slows down and can cross the temperature limit.
+# At t0 the cooling air of us-east-nyc (the H100 node next to the largest user region) rises by 40 °C, from
+# 25 °C to 65 °C, as in a cooling failure. With configs/nodes_*.yaml the node then runs at 80 °C or more
+# whenever it has work, so it throttles, and it crosses the filter's 85 °C limit once it produces more
+# than about 14 % of its maximum token throughput (about 4 % of its slots). The filter then removes it until
+# it has cooled below 85 °C, so it cycles between too hot and allowed.
+name: s4_thermal_throttle
+description: The cooling air of us-east-nyc gets 40 °C hotter at t0 (25 -> 65 °C).
+duration_s: 600
+t0_s: 200
+events:
+  - {kind: inlet_temperature, at_s: 200, node: us-east-nyc, delta_c: 40.0}

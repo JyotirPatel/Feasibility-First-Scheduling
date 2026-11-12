@@ -1,0 +1,140 @@
+# Stand-in cluster for Sur's tests and window sweep — owner: Sur (TEMPORARY)
+# Replace with Parikshit's simulator, configs/nodes/*.yaml and configs/scenarios/*.yaml
+# once they exist. Every number here is a plausible made-up value, not a measurement.
+
+duration_s: 600            # brief §5: each run is 600 s of simulated time
+t0_s: 200                  # the change starts at t0 = 200 s
+
+workload:
+  base_rate_rps: 240       # Poisson arrivals per second; uses ~38 % of all request slots on average
+                          # (measured in S1). High enough that 1-s goodput bins are not dominated by
+                          # random noise
+  model: llama-3-8b
+  regions: {nyc: 0.5, chi: 0.3, sfo: 0.2}        # share of requests from each user region
+  classes:                                       # share and TTFT SLO of each request class
+    interactive: {share: 0.8, ttft_slo_ms: 250}
+    batch:       {share: 0.2, ttft_slo_ms: 1000}
+  input_tokens:  {median: 600, sigma: 0.8, min: 16, max: 4096}   # log-normal, rounded, clipped
+  output_tokens: {median: 120, sigma: 0.7, min: 8,  max: 1024}
+
+throttle:                  # thermal slowdown: none below start_c, max_slowdown at full_c and above
+  start_c: 80.0
+  full_c: 90.0
+  max_slowdown: 2.0
+
+# Latency model (brief §5):  T_prefill = prefill_a_ms + prefill_b_ms_per_token · input_tokens
+#                            T_decode  = output_tokens · t_tok_ms · (1 + decode_c · running/capacity),
+#                            where running counts the request itself, fixed when the request starts
+# Temperature moves toward ambient_c + heat_per_load_c · running/capacity with time constant thermal_tau_s.
+# Energy per request = power_per_running_kw × service time; power headroom = power_max_kw − power_idle_kw
+# − power_per_running_kw × running.
+nodes:
+  - node_id: us-east-1
+    models_loaded: [llama-3-8b]
+    capacity: 384
+    kv_capacity_tokens: 384000
+    rtt_ms: {nyc: 12, chi: 25, sfo: 70}
+    prefill_a_ms: 15
+    prefill_b_ms_per_token: 0.06
+    t_tok_ms: 16
+    decode_c: 0.5
+    power_max_kw: 240
+    power_idle_kw: 48
+    power_per_running_kw: 0.4
+    ambient_c: 45
+    heat_per_load_c: 30
+    thermal_tau_s: 30
+    energy_price_usd_kwh: 0.11
+    gpu_price_usd_hr: 2.40
+
+  - node_id: us-central-1
+    models_loaded: [llama-3-8b, llama-3-70b]
+    capacity: 384
+    kv_capacity_tokens: 384000
+    rtt_ms: {nyc: 25, chi: 10, sfo: 45}
+    prefill_a_ms: 15
+    prefill_b_ms_per_token: 0.06
+    t_tok_ms: 18
+    decode_c: 0.5
+    power_max_kw: 240
+    power_idle_kw: 48
+    power_per_running_kw: 0.4
+    ambient_c: 42
+    heat_per_load_c: 30
+    thermal_tau_s: 30
+    energy_price_usd_kwh: 0.08
+    gpu_price_usd_hr: 2.10
+
+  - node_id: us-west-1
+    models_loaded: [llama-3-8b]
+    capacity: 384
+    kv_capacity_tokens: 384000
+    rtt_ms: {nyc: 70, chi: 50, sfo: 8}
+    prefill_a_ms: 15
+    prefill_b_ms_per_token: 0.06
+    t_tok_ms: 16
+    decode_c: 0.5
+    power_max_kw: 240
+    power_idle_kw: 48
+    power_per_running_kw: 0.4
+    ambient_c: 44
+    heat_per_load_c: 30
+    thermal_tau_s: 30
+    energy_price_usd_kwh: 0.14
+    gpu_price_usd_hr: 2.60
+
+  - node_id: eu-west-1
+    models_loaded: [llama-3-8b]
+    capacity: 512
+    kv_capacity_tokens: 512000
+    rtt_ms: {nyc: 80, chi: 95, sfo: 140}
+    prefill_a_ms: 18
+    prefill_b_ms_per_token: 0.07
+    t_tok_ms: 20
+    decode_c: 0.5
+    power_max_kw: 320
+    power_idle_kw: 64
+    power_per_running_kw: 0.4
+    ambient_c: 40
+    heat_per_load_c: 30
+    thermal_tau_s: 30
+    energy_price_usd_kwh: 0.07
+    gpu_price_usd_hr: 1.90
+
+  - node_id: ap-south-1
+    models_loaded: [llama-3-8b]
+    capacity: 384
+    kv_capacity_tokens: 384000
+    rtt_ms: {nyc: 190, chi: 200, sfo: 170}
+    prefill_a_ms: 18
+    prefill_b_ms_per_token: 0.07
+    t_tok_ms: 20
+    decode_c: 0.5
+    power_max_kw: 240
+    power_idle_kw: 48
+    power_per_running_kw: 0.4
+    ambient_c: 46
+    heat_per_load_c: 30
+    thermal_tau_s: 30
+    energy_price_usd_kwh: 0.06
+    gpu_price_usd_hr: 1.70
+
+# The six scenarios of brief §5 (frozen list; these values are defaults).
+scenarios:
+  s1_stable: {}                                            # nothing changes
+  s2_traffic_burst:                                        # arrival rate jumps for a while
+    rate_multiplier: 3.0
+    duration_s: 120
+  s3_price_shift:                                          # cheapest nodes get expensive, another gets cheap
+    price_multipliers: {eu-west-1: 4.0, ap-south-1: 4.0, us-central-1: 4.0, us-west-1: 0.3}
+  s4_thermal_throttle:                                     # one busy node's cooling gets worse
+    node: us-east-1
+    ambient_increase_c: 30
+  s5_network_degradation:                                  # delay to one popular node rises
+    node: us-east-1
+    rtt_increase_ms: 80
+  s6_outage_recovery:                                      # down at t0, back at return_s, slow while warming
+    node: us-east-1
+    return_s: 400
+    warmup_s: 60
+    warmup_slowdown: 3.0

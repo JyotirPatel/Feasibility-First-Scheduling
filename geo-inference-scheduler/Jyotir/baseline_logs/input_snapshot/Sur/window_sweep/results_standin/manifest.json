@@ -1,0 +1,20 @@
+{
+  "created_utc": "2026-10-27T03:46:58+00:00",
+  "command": "python3 window_sweep/run_sweep.py",
+  "git_commit": "1f2f514cfe92d2dbabbf2cf343d9a5dcec98d7f4",
+  "git_uncommitted_changes": true,
+  "python": "3.11.4",
+  "numpy": "2.4.2",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "config_sha256": {
+    "geo-inference-scheduler/Sur/window_sweep/sweep.yaml": "1ed0d68db6091ccc1fb684754931b3b86c836e6a0c54bc021eb9eba03e9b50e3",
+    "geo-inference-scheduler/Sur/standins/toy_cluster.yaml": "c7dbf684f92ebdf74593f1b999ce30caf6356324d4f098af89134da602e64fc1",
+    "geo-inference-scheduler/Jyotir/feasibility_filter/configs/feasibility.yaml": "77428c5eb4e3c2fdbc924b6fec720a2b7b7fbb703070511d2a785d9d46220ca1",
+    "geo-inference-scheduler/Sur/configs/policies/linucb.yaml": "0f27d76542d2e282845f6d651fa1e6258bd30fe146ab64ec9877ab32668bdbd1",
+    "geo-inference-scheduler/Sur/configs/policies/sw_linucb.yaml": "419785eb81e3980f4a362b2e86e7805b57189c62586e218fd87351deacf770a8",
+    "geo-inference-scheduler/Sur/configs/policies/sw_linucb_no_context.yaml": "506b78c72ac2cb63bfc0207417ebef023314b02bbc0ab7a3855921194f052c91"
+  },
+  "runs": 1350,
+  "runtime_s": 14371.7,
+  "simulator": "Sur/standins/toy_cluster.py (stand-in; results are preliminary)"
+}

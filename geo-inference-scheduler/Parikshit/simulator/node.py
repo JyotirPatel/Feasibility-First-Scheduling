@@ -176,7 +176,8 @@ class Node:
             self.on_outcome(self._failure(job, self.env.now))
             return
         if job.kv_tokens > self.kv_capacity:
-            raise ValueError(f"{job.request['request_id']} needs more KV cache than {self.node_id} has")
+            self.on_outcome(self._failure(job, self.env.now))
+            return
         self.queue.append(job)
         self._try_start()
 
