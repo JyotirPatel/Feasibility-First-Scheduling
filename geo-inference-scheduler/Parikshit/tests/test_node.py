@@ -99,8 +99,10 @@ def test_a_request_only_starts_if_its_kv_cache_fits():
     assert rec["kv_used_frac"] == pytest.approx(0.8) and rec["kv_capacity_tokens"] == 1_000
     env.run()
     assert len(out) == 2 and node.kv_used == 0
-    with pytest.raises(ValueError, match="KV cache"):
-        node.submit(Job(request("huge", env.now, inp=2_000, out=10), 10, 20.0))
+    # bigger than the whole KV cache (stale telemetry let it through): it fails at once, the run goes on
+    node.submit(Job(request("huge", env.now, inp=2_000, out=10), 10, 20.0))
+    assert len(out) == 3 and out[-1][1]["request_id"] == "huge" and out[-1][1]["failed"]
+    assert not node.queue and not node.running and node.kv_used == 0
 
 
 def test_decode_is_slower_when_the_node_is_busier():

@@ -115,7 +115,7 @@ def test_gzip_output_is_byte_for_byte_reproducible(tmp_path):
 
 
 def test_committed_processed_files_match_their_manifest():
-    with open(os.path.join(PROCESSED_DIR, "manifest.json")) as f:
+    with open(os.path.join(PROCESSED_DIR, "manifest.json"), encoding="utf-8") as f:
         manifest = json.load(f)
     for name, info in manifest["outputs"].items():
         path = os.path.join(PROCESSED_DIR, name)
@@ -128,7 +128,7 @@ def test_committed_processed_files_match_their_manifest():
 @pytest.mark.skipif(not os.path.isdir(os.path.join(RAW_DIR, "azure")), reason="raw data not downloaded")
 def test_processing_the_raw_downloads_again_gives_the_committed_files(tmp_path):
     manifest = pre.preprocess(RAW_DIR, str(tmp_path))
-    with open(os.path.join(PROCESSED_DIR, "manifest.json")) as f:
+    with open(os.path.join(PROCESSED_DIR, "manifest.json"), encoding="utf-8") as f:
         committed = json.load(f)
     assert {k: v["sha256"] for k, v in manifest["outputs"].items()} == {
         k: v["sha256"] for k, v in committed["outputs"].items()

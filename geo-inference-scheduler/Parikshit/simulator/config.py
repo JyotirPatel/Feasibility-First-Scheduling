@@ -244,7 +244,7 @@ class Scenario(_Strict):
 
 
 def _load(path: str, model: type[BaseModel]):
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: expected a YAML mapping at the top level")

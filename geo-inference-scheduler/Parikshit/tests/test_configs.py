@@ -90,7 +90,7 @@ def test_s3_flips_the_cheapest_region_in_real_data():
     ],
 )
 def test_bad_values_are_rejected(path, bad, tmp_path):
-    with open(f"{CONFIG_DIR}/{path}") as f:
+    with open(f"{CONFIG_DIR}/{path}", encoding="utf-8") as f:
         data = yaml.safe_load(f)
     data.update(bad)
     out = tmp_path / path

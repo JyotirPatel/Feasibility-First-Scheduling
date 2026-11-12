@@ -138,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     nodes_path = os.path.join(CONFIG_DIR, f"nodes_{args.nodes}.yaml") if str(args.nodes).isdigit() else args.nodes
     meta = {
         "configs_sha256": {
-            os.path.relpath(p, os.path.dirname(CONFIG_DIR)): _sha256(p)
+            Path(os.path.relpath(p, os.path.dirname(CONFIG_DIR))).as_posix(): _sha256(p)  # same keys on Windows
             for p in (
                 nodes_path,
                 os.path.join(CONFIG_DIR, "workload.yaml"),
