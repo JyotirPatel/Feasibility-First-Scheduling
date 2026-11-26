@@ -1,0 +1,62 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 7.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 70.46666666666668,
+    "threshold_rps": 63.420000000000016,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 57.0,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 492.0,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.2707858179556293,
+        "pre_event_requests": 1306,
+        "pre_event_all_arrivals": 4823,
+        "first_120s_arrival_share": 0.02432404217559244,
+        "first_120s_requests": 233,
+        "first_120s_all_arrivals": 9579,
+        "steady_arrival_share": 0.00931484164769199,
+        "steady_requests": 45,
+        "steady_all_arrivals": 4831
+      }
+    },
+    "reference_steady_goodput_rps": 73.15666666666668,
+    "reference_policy": "reference:true_state"
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 7.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 71.49333333333334,
+    "threshold_rps": 64.34400000000001,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 54.6,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": 165.80000000000007,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4779,
+        "first_120s_arrival_share": 0.029688325409403065,
+        "first_120s_requests": 281,
+        "first_120s_all_arrivals": 9465,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4737
+      }
+    },
+    "reference_steady_goodput_rps": 72.78999999999999,
+    "reference_policy": "reference:true_state"
+  }
+]

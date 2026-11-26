@@ -69,12 +69,19 @@ def evaluate(df, duration):
         values = pd.to_numeric(df[col], errors="raise")
         if (values.dropna() < 0).any() or not np.isfinite(values.dropna()).all():
             raise ValueError("Invalid resource value")
+        raw_coverage = float(values.notna().mean()) if n else None
+        # The simulator does not execute rejected requests. Their attributed GPU
+        # rent and energy are zero; control-plane overhead is outside this model.
+        values = values.mask(df.decision.eq("reject") & values.isna(), 0.0)
         total = float(values.sum()) if values.notna().all() else None
         result["total_" + col] = total
         result[col + "_per_slo_success"] = (
             total / int(success.sum()) if total is not None and success.sum() else None
         )
-        result[col + "_coverage"] = float(values.notna().mean()) if n else None
+        result[col + "_coverage"] = raw_coverage
+        result[col + "_accounted_coverage"] = (
+            float(values.notna().mean()) if n else None
+        )
     if "true_state_violation" in df:
         violations = df.true_state_violation.fillna("").astype(str).str.strip().ne("")
         result["true_state_violations"] = int(violations.sum())

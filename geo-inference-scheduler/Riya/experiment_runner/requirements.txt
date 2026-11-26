@@ -5,3 +5,4 @@ pydantic>=2.5
 simpy>=4.1
 matplotlib>=3.8
 pytest>=8
+pyarrow>=14

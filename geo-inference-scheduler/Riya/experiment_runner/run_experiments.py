@@ -52,13 +52,10 @@ def load_config(path):
                 raise ValueError(f"{key} must contain non-empty strings.")
 
             if not all(
-                character.isascii()
-                and (character.isalnum() or character in "_-")
+                character.isascii() and (character.isalnum() or character in "_-")
                 for character in name
             ):
-                raise ValueError(
-                    f"Invalid name: {name}. Use letters, numbers, _ or -."
-                )
+                raise ValueError(f"Invalid name: {name}. Use letters, numbers, _ or -.")
 
         if len(set(config[key])) != len(config[key]):
             raise ValueError(f"{key} contains duplicate entries.")
@@ -82,26 +79,23 @@ def create_plan(config, output_dir, git_info):
     for policy in config["policies"]:
         for scenario in config["scenarios"]:
             for seed in config["seeds"]:
-                rows.append({
-                    "run_id": f"{policy}__{scenario}__seed_{seed}",
-                    "policy": policy,
-                    "scenario": scenario,
-                    "seed": seed,
-                    "status": "planned",
-                    "output_directory": (
-                        Path("runs")
-                        / policy
-                        / scenario
-                        / f"seed_{seed}"
-                    ).as_posix(),
-                })
+                rows.append(
+                    {
+                        "run_id": f"{policy}__{scenario}__seed_{seed}",
+                        "policy": policy,
+                        "scenario": scenario,
+                        "seed": seed,
+                        "status": "planned",
+                        "output_directory": (
+                            Path("runs") / policy / scenario / f"seed_{seed}"
+                        ).as_posix(),
+                    }
+                )
 
     # Refuse to overwrite an existing plan.
     output_dir.mkdir(parents=True, exist_ok=False)
 
-    with open(
-        output_dir / "config_snapshot.json", "w", encoding="utf-8"
-    ) as file:
+    with open(output_dir / "config_snapshot.json", "w", encoding="utf-8") as file:
         json.dump(config, file, indent=2)
         file.write("\n")
 
@@ -118,9 +112,7 @@ def create_plan(config, output_dir, git_info):
         ),
     }
 
-    with open(
-        output_dir / "plan_metadata.json", "w", encoding="utf-8"
-    ) as file:
+    with open(output_dir / "plan_metadata.json", "w", encoding="utf-8") as file:
         json.dump(metadata, file, indent=2)
         file.write("\n")
 
@@ -151,9 +143,7 @@ def main():
     args = parser.parse_args()
 
     if not args.dry_run:
-        parser.error(
-            "Simulator execution is not integrated. Use --dry-run."
-        )
+        parser.error("Simulator execution is not integrated. Use --dry-run.")
 
     config_path = Path(args.config).resolve()
     output_dir = Path(args.output).resolve()

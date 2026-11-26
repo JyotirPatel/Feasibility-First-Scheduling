@@ -1,0 +1,32 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 0.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 71.53000000000002,
+    "threshold_rps": 64.37700000000001,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 57.0,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 21.200000000000003,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.27259742909610285,
+        "pre_event_requests": 1336,
+        "pre_event_all_arrivals": 4901,
+        "first_120s_arrival_share": 0.24367888748419722,
+        "first_120s_requests": 2313,
+        "first_120s_all_arrivals": 9492,
+        "steady_arrival_share": 0.2262205387205387,
+        "steady_requests": 1075,
+        "steady_all_arrivals": 4752
+      }
+    },
+    "reference_steady_goodput_rps": 71.53000000000002,
+    "reference_policy": "reference:true_state"
+  }
+]

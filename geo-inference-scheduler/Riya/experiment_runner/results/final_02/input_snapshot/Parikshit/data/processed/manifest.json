@@ -1,0 +1,82 @@
+{
+  "written_utc": "2026-10-27T05:33:55+00:00",
+  "script": "data_sources/preprocess_traces.py",
+  "inputs": {
+    "data/raw/azure/AzureLLMInferenceTrace_conv.csv": "2f1e5b666d4e3055fdbba98598ce2ec307767b9064e03e2fa46676dbcc7d0bf8",
+    "data/raw/azure/AzureLLMInferenceTrace_code.csv": "54e9a6d2a4bd06ba1e060304b900abbc74cbea53de96506e60fe5bb4f2277fb6",
+    "data/raw/nyiso/20240401damlbmp_zone_csv.zip": "4246824880f5bcb6663397ac00117e177a37a10f4236f0e735596a06e5d0116c",
+    "data/raw/caiso/caiso_dam_hubs_20240401_20240501.zip": "f4ea727d87e16b1051b87a8165078550832d8317bdc6161b48a39550d5d4aac7",
+    "data/raw/wonderproxy/pings-2020-07-19-2020-07-20.csv.gz": "46617678d0180d784cdfb0eabb3e5918952fc7cb25d64a4a0c11fdd9278d9a97",
+    "data/raw/wonderproxy/servers-2020-07-19.csv": "626fdc4be97cdbfd4da9fae20b5a7f58abf1220e34859b5d21566be18b9b508c"
+  },
+  "outputs": {
+    "azure_conv.csv.gz": {
+      "rows": 19365,
+      "sha256": "a44ea6e767fb2e497501dc976b6e5c4db478b009b14204ebdd15dfb67fb8fa93"
+    },
+    "azure_code.csv.gz": {
+      "rows": 8819,
+      "sha256": "850911b50b4e4f42d8064ad8d47064f9f105e55562594d403a8080177b9627d6"
+    },
+    "prices_hourly.csv": {
+      "rows": 336,
+      "sha256": "ae37f154f32598015d477856fae8bcfc9cd199033b386d981b89556b7b8a01ac"
+    },
+    "rtt_ms.csv": {
+      "rows": 91,
+      "sha256": "f6654d5760bf9ecbee6dbf5e5c08ac791d29f7b86c545420c3c93751e3d1e575"
+    }
+  },
+  "details": {
+    "azure_conv": {
+      "rows_in": 19366,
+      "dropped_over_context": 1,
+      "rows_out": 19365,
+      "first_timestamp": "2023-11-16 18:15:46.680590",
+      "span_s": 3501.722,
+      "mean_rate_rps": 5.5301
+    },
+    "azure_code": {
+      "rows_in": 8819,
+      "dropped_over_context": 0,
+      "rows_out": 8819,
+      "first_timestamp": "2023-11-16 18:17:03.979960",
+      "span_s": 3435.948,
+      "mean_rate_rps": 2.5667
+    },
+    "prices": {
+      "days_utc": [
+        "2024-04-17",
+        "2024-04-18"
+      ],
+      "zones": [
+        "CAISO:NP15",
+        "CAISO:SP15",
+        "NYISO:CAPITL",
+        "NYISO:CENTRL",
+        "NYISO:LONGIL",
+        "NYISO:N.Y.C.",
+        "NYISO:WEST"
+      ]
+    },
+    "rtt": {
+      "cities": {
+        "Manhattan": 114,
+        "GardenCity": 13,
+        "Buffalo": 96,
+        "Albany": 145,
+        "Syracuse": 235,
+        "SanJose": 23,
+        "Fremont": 30,
+        "Sacramento": 93,
+        "LosAngeles": 37,
+        "SanDiego": 73,
+        "Chicago": 22,
+        "SanFrancisco": 100,
+        "Dallas": 12,
+        "Atlanta": 18
+      },
+      "min_samples_per_pair": 96
+    }
+  }
+}

@@ -80,7 +80,7 @@ The earlier router integration executed 7 policies × 2 mock scenarios × 10 see
 S1–S6 evaluation. Their logs remain in `experiment_runner/results/evaluation_01/`.
 Do not use their goodput, energy or cost estimates as the new simulator results.
 
-## 4. Current Simulator Evaluation
+## 4. Earlier Simulator Integration
 
 
 - Switched the evaluation runner from the mock cluster to the replayable S1–S6 simulator.
@@ -94,12 +94,33 @@ Do not use their goodput, energy or cost estimates as the new simulator results.
 - Added bootstrap intervals across seeds, workload-pairing checks and bundle-only figures.
 - Preserved sample fixtures and historical mock runs as verification material.
 
-A fresh full simulator grid, confidence intervals and report figures must be generated from
-these bundles before final comparative claims. Lost goodput requires a matched oracle.
-Recovery delays must be shown with G*, recovery fractions, stable noise and node traffic
-shares. Team decisions about final cluster size and reward settings remain explicit inputs.
+This stage established the simulator integration. The frozen final evaluation below
+supersedes its result bundle for final comparative claims.
 
 ## 5. Earlier Commits
 
 - `a8106d4`: Initial metrics and synthetic verification example
 - `a578495`: Dry-run planner for 420 experiment combinations
+
+## 6. Final Integration, Evaluation and Report
+
+Completed a new frozen 600-run evaluation after auditing the old source hashes and
+finding four content changes. The main comparison contains 420 runs; no-filter and
+no-context ablations add 120, and a clearly labelled myopic true-state reference adds 60.
+Plain LinUCB is the no-forgetting ablation. Every run passed execution/log validation.
+
+The runner now supports explicit filter variants, parallel independent processes,
+Parquet logs, checked resume, and source capture that excludes generated baseline logs.
+All policies use matching seeded workloads. Metrics account for rejected requests'
+zero execution-attributed resources without hiding missing routed outcomes.
+
+Full verification replayed all raw-log metrics and all recovery records, checked hashes,
+validated matching workloads and confirmed the complete grid. The final analysis adds
+paired bootstrap effects, recovery counts, stable noise, both S6 anchors, node traffic
+shares and independent true-state safety annotations. Module test counts and limitations
+are recorded in `report/INTEGRATION_NOTES.md`.
+
+All figures were regenerated from the frozen bundle. The final PDF and editable report
+are in `report/Group20_Final_Report.*`; `report/FINAL_RESULTS.md` summarizes completion.
+Raw logs are preserved separately from the compact code/tables/figures for transfer.
+Old synthetic fixtures, mock results and earlier simulator runs remain historical material.

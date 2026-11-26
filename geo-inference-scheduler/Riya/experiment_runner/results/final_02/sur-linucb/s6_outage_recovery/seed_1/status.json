@@ -1,0 +1,21 @@
+{
+  "policy": "sur:linucb",
+  "scenario": "s6_outage_recovery",
+  "seed": 1,
+  "simulator": "parikshit",
+  "nodes": 5,
+  "duration_s": 600.0,
+  "rate_rps": 80,
+  "status": "ok",
+  "bundle_sha256": {
+    "config.json": "bac7fc01fc8ae044e6a5498ec1f3b943f6b35bcb02acd1208072fe88bc73654a",
+    "decision_log.parquet": "12a9f5287d48b6550f422aa445f3afa1756f96ebda64f53ab738ce1b9a138114",
+    "events.json": "6897d81ae4f30dc1bd394511e1b8d85a2038cbf6c7314c25df51aeb284a9f392",
+    "goodput_curve.csv": "46d11bb0d01b007f16d8340f851aac4c4f79bd6595606f0e41057af5e78138a8",
+    "metrics.json": "6de23b30dd42eee7738e2a6de0733279fe5ee7173ae57f9372e9873c0839aae7",
+    "policy_stats.json": "cfc38ebc5cc4d9cdabc6880035d642629cffc4adc8e42efa26251b492f889d1b",
+    "recovery.json": "e50f9c12e33a93d4393b11b12b03fbba8045710e36deb30109f85663be9fb006",
+    "resolved_inputs.json": "94e51d3125adf593112f14f4a821308a21b7b7ee7eaae4fa38e297ab029ed29a",
+    "simulation_stats.json": "2a0fa4b011f7fd06d32d822679fe6240e01012bc9350391c98045558c72eae96"
+  }
+}

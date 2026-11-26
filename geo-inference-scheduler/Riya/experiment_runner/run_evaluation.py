@@ -1,6 +1,14 @@
-# """Execute teammate policies through the real router with Parikshit's replayable simulator."""
+"""Reproducible simulator evaluation, parallel runs and explicit ablations."""
 
 import argparse
+import os
+
+# Prevent a small matrix operation from spawning a BLAS pool in every worker.
+for _key in ["OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"]:
+    os.environ[_key] = "1"
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import platform
+import time
 import hashlib
 import json
 import shutil
@@ -43,16 +51,40 @@ def dump(path, obj):
     )
 
 
-def source_info():
-    files = sorted(
+GENERATED_DIRS = {
+    "results",
+    "plans",
+    "baseline_logs",
+    "input_snapshot",
+    "runs",
+    "checkpoints",
+    "__pycache__",
+    ".git",
+    ".venv",
+}
+
+
+def source_files(root=ROOT):
+    return sorted(
         p
         for owner in ["Riya", "Krupesh", "Jyotir", "Sur", "Parikshit"]
-        for p in (ROOT / owner).rglob("*")
-        if p.suffix in [".py", ".yaml", ".json", ".csv"]
-        and not any(x in p.parts for x in ["results", "plans", "__pycache__", ".git"])
+        for p in (root / owner).rglob("*")
+        if p.is_file()
+        and (
+            p.suffix in {".py", ".yaml", ".yml", ".json", ".csv"}
+            or p.name.endswith(".csv.gz")
+        )
+        and not any(
+            x in GENERATED_DIRS or x.startswith("results_")
+            for x in p.relative_to(root).parts
+        )
     )
+
+
+def source_info():
+    files = source_files()
     manifest = {
-        str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
+        p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in files
     }
     try:
@@ -61,19 +93,50 @@ def source_info():
         ).strip()
     except (OSError, subprocess.CalledProcessError):
         commit = None
-    return {"git_commit": commit, "source_sha256": manifest}
+    return {
+        "git_commit": commit,
+        "source_sha256": manifest,
+        "python": platform.python_version(),
+        "numpy": np.__version__,
+        "pandas": pd.__version__,
+    }
+
+
+def resolve_policy(label, cfg):
+    spec = cfg.get("policy_overrides", {}).get(label, {})
+    return spec.get("implementation", label), spec.get(
+        "filter", cfg.get("filter_name", "jyotir")
+    )
+
+
+def read_decision_log(folder):
+    parquet = folder / "decision_log.parquet"
+    return (
+        pd.read_parquet(parquet)
+        if parquet.exists()
+        else pd.read_csv(folder / "decision_log.csv", low_memory=False)
+    )
 
 
 def run_one(policy, scenario, seed, cfg, folder):
+    started = time.perf_counter()
     register()
-    model = build_policy(policy, seed=seed)
+    implementation, filter_name = resolve_policy(policy, cfg)
+    if implementation == "reference:true_state":
+        from true_state_reference import TrueStatePolicy
+
+        model = TrueStatePolicy(seed=seed)
+    else:
+        model = build_policy(implementation, seed=seed)
     reward_cfg = model.config.reward if hasattr(model, "config") else None
     engine = RoutingEngine(
         policy=model,
-        filter_fn=build_filter("jyotir"),
+        filter_fn=build_filter(filter_name),
         reward_fn=make_reward_fn(reward_cfg),
         meta=RunMeta(f"{scenario}__{policy}__s{seed}", seed, scenario, policy),
-        writer=DecisionLogWriter(folder / "decision_log.csv"),
+        writer=DecisionLogWriter(
+            folder / ("decision_log." + cfg.get("log_format", "parquet"))
+        ),
         audit_fn=build_filter("jyotir"),
     )
     trace = load_scenario(scenario)
@@ -97,19 +160,29 @@ def run_one(policy, scenario, seed, cfg, folder):
     cluster = Simulation(
         adapter, trace, seed, cluster=cluster_config, workload=workload
     )
+    if implementation == "reference:true_state":
+        from true_state_reference import attach_reference
+
+        attach_reference(adapter, cluster, model)
     simulation_stats = cluster.run()
     dump(folder / "simulation_stats.json", simulation_stats)
     engine.finish()
     df = engine.writer.close()
     # Metrics always read the persisted authoritative log.
-    df = pd.read_csv(folder / "decision_log.csv", low_memory=False)
+    df = read_decision_log(folder)
     problems = validate_log(df)
     if problems:
         raise ValueError(str(problems))
     if "true_state_violation" not in df:
         raise ValueError("Simulator independent safety annotations are missing")
     result = evaluate(df, duration)
-    result.update(policy=policy, scenario=scenario, seed=seed)
+    result.update(
+        policy=policy,
+        scenario=scenario,
+        seed=seed,
+        implementation=implementation,
+        filter_name=filter_name,
+    )
     if hasattr(model, "stats"):
         dump(folder / "policy_stats.json", dict(model.stats))
         if model.stats.get("reward_mismatch", 0):
@@ -157,130 +230,170 @@ def run_one(policy, scenario, seed, cfg, folder):
     )
     dump(folder / "recovery.json", event_rows)
     result["recovery_status"] = "see recovery.json (S1 is a control diagnostic)"
+    result["wall_s"] = round(time.perf_counter() - started, 3)
     dump(folder / "metrics.json", result)
     return result
 
 
+def bundle_hashes(folder):
+    return {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted(folder.iterdir())
+        if p.is_file() and p.name not in {"status.json", "error.txt"}
+    }
+
+
+def verify_cached(folder):
+    saved = json.loads((folder / "status.json").read_text(encoding="utf-8"))
+    expected = saved.get("bundle_sha256", {})
+    if not expected or any(
+        not (folder / n).is_file()
+        or hashlib.sha256((folder / n).read_bytes()).hexdigest() != h
+        for n, h in expected.items()
+    ):
+        raise ValueError(f"Cached bundle incomplete or modified: {folder}")
+    return json.loads((folder / "metrics.json").read_text(encoding="utf-8"))
+
+
+def execute_task(task):
+    policy, scenario, seed, cfg, folder_string = task
+    folder = Path(folder_string)
+    folder.mkdir(parents=True, exist_ok=True)
+    meta = {
+        "policy": policy,
+        "scenario": scenario,
+        "seed": seed,
+        "simulator": "parikshit",
+        "nodes": cfg["nodes"],
+        "duration_s": load_scenario(scenario).duration_s,
+        "rate_rps": cfg.get("rate_rps"),
+    }
+    dump(folder / "config.json", {**cfg, **meta})
+    dump(folder / "status.json", {**meta, "status": "running"})
+    try:
+        result = run_one(policy, scenario, seed, cfg, folder)
+        dump(
+            folder / "status.json",
+            {**meta, "status": "ok", "bundle_sha256": bundle_hashes(folder)},
+        )
+        return {**result, "status": "ok"}
+    except Exception as exc:
+        dump(folder / "status.json", {**meta, "status": "failed", "error": str(exc)})
+        (folder / "error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        return {**meta, "status": "failed", "error": str(exc)}
+
+
+def validate_config(cfg):
+    if (
+        cfg.get("simulator") != "parikshit"
+        or cfg.get("goodput_time_basis") != "arrival"
+    ):
+        raise ValueError("Use the Parikshit simulator with arrival-time goodput")
+    if cfg.get("nodes") not in [5, 10]:
+        raise ValueError("nodes must be 5 or 10")
+    rate = cfg.get("rate_rps")
+    if rate is not None and (not np.isfinite(rate) or rate <= 0):
+        raise ValueError("Invalid rate_rps")
+    if cfg.get("log_format", "parquet") not in ["parquet", "csv"]:
+        raise ValueError("Unsupported log format")
+    for name in ["policies", "scenarios", "seeds"]:
+        if not cfg[name] or len(cfg[name]) != len(set(cfg[name])):
+            raise ValueError(f"Empty/duplicate {name}")
+    for seed in cfg["seeds"]:
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            raise ValueError("Seeds must be nonnegative integers")
+    for label in cfg["policies"]:
+        _, f = resolve_policy(label, cfg)
+        if f not in ["jyotir", "none"]:
+            raise ValueError(f"Unsupported filter: {f}")
+    for scenario in cfg["scenarios"]:
+        load_scenario(scenario)
+
+
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
-        "--config", default=str(Path(__file__).with_name("config_simulator.json"))
+        "--config", default=str(Path(__file__).with_name("config_final.json"))
     )
     ap.add_argument("--output", required=True)
     ap.add_argument("--limit", type=int)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--workers", type=int, default=1)
     a = ap.parse_args()
+    if a.workers < 1 or (a.limit is not None and a.limit < 1):
+        raise ValueError("workers/limit must be positive")
     cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
-    if a.limit is not None and a.limit < 1:
-        raise ValueError("--limit must be positive")
-    if cfg.get("simulator") != "parikshit":
-        raise ValueError(
-            "Use config_simulator.json for actual simulator evaluation; mock results are historical only"
-        )
-    if cfg.get("goodput_time_basis") != "arrival":
-        raise ValueError("This evaluation uses arrival-time bins, matching Sur's sweep")
-    if cfg.get("nodes") not in [5, 10]:
-        raise ValueError("nodes must be 5 or 10")
-    if cfg.get("rate_rps") is not None and (
-        not np.isfinite(cfg["rate_rps"]) or cfg["rate_rps"] <= 0
-    ):
-        raise ValueError("rate_rps must be positive and finite")
-    if len(cfg["policies"]) != len(set(cfg["policies"])) or len(
-        cfg["scenarios"]
-    ) != len(set(cfg["scenarios"])):
-        raise ValueError("Duplicate policy or scenario")
-    if len(cfg["seeds"]) != len(set(cfg["seeds"])):
-        raise ValueError("Duplicate seeds")
-    if not cfg["policies"] or not cfg["scenarios"] or not cfg["seeds"]:
-        raise ValueError("Experiment grid is empty")
-    for scenario in cfg["scenarios"]:
-        load_scenario(scenario)
+    validate_config(cfg)
     out = Path(a.output).resolve()
     if out.exists() and not a.resume:
-        raise FileExistsError("Choose a new output folder or --resume")
+        raise FileExistsError("Use a new output directory or --resume")
     out.mkdir(parents=True, exist_ok=True)
     provenance = source_info()
     if (out / "config.json").exists():
         if (
-            json.loads((out / "config.json").read_text()) != cfg
-            or json.loads((out / "source.json").read_text()) != provenance
+            json.loads((out / "config.json").read_text(encoding="utf-8")) != cfg
+            or json.loads((out / "source.json").read_text(encoding="utf-8"))
+            != provenance
         ):
-            raise ValueError("Config/source changed; use a new output folder")
+            raise ValueError("Config/source/environment changed; choose a new bundle")
     dump(out / "config.json", cfg)
     dump(out / "source.json", provenance)
-    # Keep actual configuration/data bytes, not only hashes, in each root bundle.
+    # Copy only reproducibility inputs; never include generated baseline logs.
     for relative in provenance["source_sha256"]:
         original = ROOT / relative
-        if original.suffix in [".yaml", ".yml", ".json", ".csv"]:
-            target = out / "input_snapshot" / relative
+        target = out / "input_snapshot" / relative
+        if not target.exists():
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(original, target)
+    tasks = []
     rows = []
-    total = 0
     for policy in cfg["policies"]:
         for scenario in cfg["scenarios"]:
             for seed in cfg["seeds"]:
-                if a.limit is not None and total >= a.limit:
-                    break
-                total += 1
+                if a.limit is not None and len(tasks) + len(rows) >= a.limit:
+                    continue
                 folder = out / policy.replace(":", "-") / scenario / f"seed_{seed}"
-                folder.mkdir(parents=True, exist_ok=True)
-                meta = {
-                    "policy": policy,
-                    "scenario": scenario,
-                    "seed": seed,
-                    "simulator": "parikshit",
-                    "nodes": cfg["nodes"],
-                    "duration_s": load_scenario(scenario).duration_s,
-                    "rate_rps": cfg.get("rate_rps"),
-                }
                 if (
                     a.resume
                     and (folder / "status.json").exists()
-                    and json.loads((folder / "status.json").read_text()).get("status")
+                    and json.loads(
+                        (folder / "status.json").read_text(encoding="utf-8")
+                    ).get("status")
                     == "ok"
                 ):
-                    saved = json.loads(
-                        (folder / "status.json").read_text(encoding="utf-8")
-                    )
-                    digests = saved.get("bundle_sha256", {})
-                    if not digests or any(
-                        not (folder / name).is_file()
-                        or hashlib.sha256((folder / name).read_bytes()).hexdigest()
-                        != digest
-                        for name, digest in digests.items()
-                    ):
-                        raise ValueError(
-                            f"Cached bundle changed or incomplete: {folder}; use a new output directory"
-                        )
-                    result = json.loads(
-                        (folder / "metrics.json").read_text(encoding="utf-8")
-                    )
+                    rows.append({**verify_cached(folder), "status": "ok"})
                 else:
-                    dump(folder / "config.json", {**cfg, **meta})
-                    dump(folder / "status.json", {**meta, "status": "running"})
-                    try:
-                        result = run_one(policy, scenario, seed, cfg, folder)
-                        digests = {
-                            p.name: hashlib.sha256(p.read_bytes()).hexdigest()
-                            for p in folder.iterdir()
-                            if p.is_file() and p.name != "status.json"
-                        }
-                        dump(
-                            folder / "status.json",
-                            {**meta, "status": "ok", "bundle_sha256": digests},
-                        )
-                    except Exception as exc:
-                        result = {**meta, "error": str(exc)}
-                        dump(
-                            folder / "status.json",
-                            {**meta, "status": "failed", "error": str(exc)},
-                        )
-                        (folder / "error.txt").write_text(traceback.format_exc())
-                status = json.loads((folder / "status.json").read_text())["status"]
-                rows.append({**result, "status": status})
+                    tasks.append((policy, scenario, seed, cfg, str(folder)))
+    total = len(tasks) + len(rows)
+    done = len(rows)
+    print(f"{total} selected runs, {done} cached, {a.workers} workers", flush=True)
+    if a.workers == 1:
+        iterator = map(execute_task, tasks)
+        for row in iterator:
+            rows.append(row)
+            done += 1
+            pd.DataFrame(rows).to_csv(out / "summary.csv", index=False)
+            print(
+                f"{done}/{total}: {row['policy']} {row['scenario']} seed={row['seed']}: {row['status']}",
+                flush=True,
+            )
+    else:
+        with ProcessPoolExecutor(max_workers=a.workers) as pool:
+            futures = [pool.submit(execute_task, t) for t in tasks]
+            for future in as_completed(futures):
+                row = future.result()
+                rows.append(row)
+                done += 1
                 pd.DataFrame(rows).to_csv(out / "summary.csv", index=False)
-                print(f"{total}: {policy} {scenario} seed={seed}: {status}", flush=True)
+                print(
+                    f"{done}/{total}: {row['policy']} {row['scenario']} seed={row['seed']}: {row['status']}",
+                    flush=True,
+                )
+    # Reference loss is computed post hoc only after all paired reference curves exist.
+    if "reference:true_state" in cfg["policies"]:
+        from finalize_reference import finalize_reference
+
+        finalize_reference(out)
     summarize(out)
     if any(r["status"] != "ok" for r in rows):
         raise SystemExit(1)

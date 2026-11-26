@@ -1,0 +1,33 @@
+{
+  "scenario": "s3_price_shift",
+  "seed": 4,
+  "requests": 48026,
+  "routed": 48026,
+  "rejected": 0,
+  "completed": 48026,
+  "failed": 0,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.1257285575048733,
+  "routed_by_node": {
+    "us-east-alb": 7617,
+    "us-east-buf": 7771,
+    "us-east-nyc": 13190,
+    "us-west-lax": 7577,
+    "us-west-sjc": 11871
+  },
+  "end_time_s": 609.5073401564221,
+  "events": [
+    {
+      "kind": "energy_prices",
+      "at_s": 200.0,
+      "usd_kwh": {
+        "us-east-nyc": 0.026600000000000002,
+        "us-east-buf": 0.023399999999999997,
+        "us-east-alb": 0.0256,
+        "us-west-sjc": 0.04610836,
+        "us-west-lax": 0.0499193
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 7.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 186.20333333333335,
+    "threshold_rps": 167.58300000000003,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 96.2,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 1783.8,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {},
+    "reference_steady_goodput_rps": 197.63333333333333,
+    "reference_policy": "reference:true_state"
+  }
+]

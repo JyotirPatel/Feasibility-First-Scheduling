@@ -1,0 +1,21 @@
+{
+  "anchors": {
+    "t0": 200.0
+  },
+  "events": [
+    {
+      "at_s": 200.0,
+      "kind": "inlet_temperature",
+      "node": "us-east-nyc",
+      "delta_c": 40.0
+    }
+  ],
+  "actual_events": [
+    {
+      "kind": "inlet_temperature",
+      "at_s": 200.0,
+      "node": "us-east-nyc",
+      "inlet_c": 65.0
+    }
+  ]
+}

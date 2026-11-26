@@ -1,0 +1,62 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 12.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 68.07,
+    "threshold_rps": 61.263,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 56.2,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 540.2,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.29479890503263845,
+        "pre_event_requests": 1400,
+        "pre_event_all_arrivals": 4749,
+        "first_120s_arrival_share": 0.0,
+        "first_120s_requests": 0,
+        "first_120s_all_arrivals": 9472,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4807
+      }
+    },
+    "reference_steady_goodput_rps": 72.61333333333332,
+    "reference_policy": "reference:true_state"
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 30.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 73.31333333333332,
+    "threshold_rps": 65.98199999999999,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 59.4,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": 210.60000000000014,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4769,
+        "first_120s_arrival_share": 0.2695292291774444,
+        "first_120s_requests": 2605,
+        "first_120s_all_arrivals": 9665,
+        "steady_arrival_share": 0.353464322647363,
+        "steady_requests": 1709,
+        "steady_all_arrivals": 4835
+      }
+    },
+    "reference_steady_goodput_rps": 74.56333333333332,
+    "reference_policy": "reference:true_state"
+  }
+]

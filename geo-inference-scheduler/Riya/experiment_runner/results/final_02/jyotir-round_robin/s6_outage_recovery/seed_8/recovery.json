@@ -1,0 +1,62 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 9.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 48.87,
+    "threshold_rps": 43.983,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 41.2,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 2604.4,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.2,
+        "pre_event_requests": 958,
+        "pre_event_all_arrivals": 4790,
+        "first_120s_arrival_share": 0.0,
+        "first_120s_requests": 0,
+        "first_120s_all_arrivals": 9433,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4727
+      }
+    },
+    "reference_steady_goodput_rps": 71.51333333333334,
+    "reference_policy": "reference:true_state"
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 38.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 56.41666666666666,
+    "threshold_rps": 50.77499999999999,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 40.6,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": 2417.4,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4838,
+        "first_120s_arrival_share": 0.20008250825082508,
+        "first_120s_requests": 1940,
+        "first_120s_all_arrivals": 9696,
+        "steady_arrival_share": 0.2001619105444242,
+        "steady_requests": 989,
+        "steady_all_arrivals": 4941
+      }
+    },
+    "reference_steady_goodput_rps": 75.19999999999999,
+    "reference_policy": "reference:true_state"
+  }
+]

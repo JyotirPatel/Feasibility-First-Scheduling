@@ -1,0 +1,25 @@
+{
+  "anchors": {
+    "t0": 200.0
+  },
+  "events": [
+    {
+      "at_s": 200.0,
+      "kind": "energy_prices",
+      "hour_utc": "2024-04-18 02:00:00+00:00"
+    }
+  ],
+  "actual_events": [
+    {
+      "kind": "energy_prices",
+      "at_s": 200.0,
+      "usd_kwh": {
+        "us-east-nyc": 0.026600000000000002,
+        "us-east-buf": 0.023399999999999997,
+        "us-east-alb": 0.0256,
+        "us-west-sjc": 0.04610836,
+        "us-west-lax": 0.0499193
+      }
+    }
+  ]
+}

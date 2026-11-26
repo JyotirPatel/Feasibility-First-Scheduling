@@ -1,0 +1,15 @@
+{
+  "runs": 600,
+  "event_records": 700,
+  "passed": true,
+  "problems": [],
+  "checks": [
+    "raw arrival-goodput bins",
+    "five-second smoothing",
+    "G*",
+    "ten-second adaptation hold",
+    "deepest dip",
+    "matched-reference positive-area deficit",
+    "node traffic shares"
+  ]
+}

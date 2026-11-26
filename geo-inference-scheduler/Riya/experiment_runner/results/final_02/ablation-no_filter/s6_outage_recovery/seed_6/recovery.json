@@ -1,0 +1,62 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 21.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 72.79666666666667,
+    "threshold_rps": 65.517,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 53.2,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 243.0,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.2701018076044047,
+        "pre_event_requests": 1300,
+        "pre_event_all_arrivals": 4813,
+        "first_120s_arrival_share": 0.01834766198364437,
+        "first_120s_requests": 175,
+        "first_120s_all_arrivals": 9538,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4823
+      }
+    },
+    "reference_steady_goodput_rps": 72.79666666666667,
+    "reference_policy": "reference:true_state"
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 6.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 72.70666666666666,
+    "threshold_rps": 65.43599999999999,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 53.0,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": 154.79999999999995,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4885,
+        "first_120s_arrival_share": 0.02261645398900301,
+        "first_120s_requests": 218,
+        "first_120s_all_arrivals": 9639,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4816
+      }
+    },
+    "reference_steady_goodput_rps": 74.06333333333333,
+    "reference_policy": "reference:true_state"
+  }
+]

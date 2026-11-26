@@ -1,0 +1,20 @@
+{
+  "policy": "jyotir:least_load",
+  "scenario": "s6_outage_recovery",
+  "seed": 8,
+  "simulator": "parikshit",
+  "nodes": 5,
+  "duration_s": 600.0,
+  "rate_rps": 80,
+  "status": "ok",
+  "bundle_sha256": {
+    "config.json": "b24929d2ace2fee7c28b7bc53036e767cf6e5b0099eeb263f4389cf032129366",
+    "decision_log.parquet": "5dc96f43b772bf694821c457f6406aa3585d7d36a8eb49a3d6f3635428a71b6b",
+    "events.json": "b21de8706d567a7bc427493ea979cfe67da7c8489f945abc316f0eee4da0da80",
+    "goodput_curve.csv": "e10a30de392b77bc21356f180b2ddec56b652523433e3c2428319e0e884eaae4",
+    "metrics.json": "e164fbc08a1356dffe2784a466fb7e24c8f1babedad22d0033c86d144c88de07",
+    "recovery.json": "74236f7b39a8dc3d610f4ebdf6d039582cc7e7bdd0c9f3437c631565fa79a4ec",
+    "resolved_inputs.json": "6e154c2831c44b63caed91b268182383971fc1469388d1f4552157f21fe964f5",
+    "simulation_stats.json": "e4446102255984c6fb0a0884f71917f425c70360cabc5ecf73a5c45de5d44b2e"
+  }
+}

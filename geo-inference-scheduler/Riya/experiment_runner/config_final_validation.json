@@ -1,0 +1,39 @@
+{
+  "simulator": "parikshit",
+  "policies": [
+    "jyotir:round_robin",
+    "sur:sw_linucb",
+    "ablation:no_filter",
+    "sur:sw_linucb_no_context",
+    "reference:true_state"
+  ],
+  "scenarios": [
+    "s1_stable",
+    "s2_traffic_burst",
+    "s6_outage_recovery"
+  ],
+  "seeds": [
+    0
+  ],
+  "rate_rps": 80,
+  "nodes": 5,
+  "goodput_time_basis": "arrival",
+  "main_policies": [
+    "jyotir:round_robin",
+    "jyotir:min_rtt",
+    "jyotir:least_load",
+    "jyotir:lowest_energy",
+    "jyotir:static_weighted",
+    "sur:linucb",
+    "sur:sw_linucb"
+  ],
+  "policy_overrides": {
+    "ablation:no_filter": {
+      "implementation": "sur:sw_linucb",
+      "filter": "none"
+    }
+  },
+  "filter_name": "jyotir",
+  "log_format": "parquet",
+  "reference_definition": "Myopic true-state, immediate-admission, minimum TTFT; not a global upper bound"
+}

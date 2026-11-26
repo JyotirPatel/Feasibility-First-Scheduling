@@ -1,0 +1,28 @@
+{
+  "scenario": "s5_network_degradation",
+  "seed": 5,
+  "requests": 47567,
+  "routed": 47567,
+  "rejected": 0,
+  "completed": 47567,
+  "failed": 0,
+  "failed_at_arrival": 0,
+  "ticks": 600,
+  "mean_slot_use": 0.15044956140350876,
+  "routed_by_node": {
+    "us-east-alb": 9983,
+    "us-east-buf": 9602,
+    "us-east-nyc": 4074,
+    "us-west-lax": 9687,
+    "us-west-sjc": 14221
+  },
+  "end_time_s": 611.4411892379896,
+  "events": [
+    {
+      "kind": "rtt",
+      "at_s": 200.0,
+      "node": "us-east-nyc",
+      "rtt_extra_ms": 80.0
+    }
+  ]
+}

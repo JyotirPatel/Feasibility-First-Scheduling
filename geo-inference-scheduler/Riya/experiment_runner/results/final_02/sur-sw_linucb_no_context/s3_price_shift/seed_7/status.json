@@ -1,0 +1,21 @@
+{
+  "policy": "sur:sw_linucb_no_context",
+  "scenario": "s3_price_shift",
+  "seed": 7,
+  "simulator": "parikshit",
+  "nodes": 5,
+  "duration_s": 600.0,
+  "rate_rps": 80,
+  "status": "ok",
+  "bundle_sha256": {
+    "config.json": "f7efcdd4421e8f94ef065241018eed96ce38cda23bed04ece9ba10749fc488f7",
+    "decision_log.parquet": "0cd9c3c1ee053b64b5b5eb73c7fa14f3793313cab6797ec0e4a327c512bef035",
+    "events.json": "a2e9d3c18bdd1691028caedeb2894ddb5a9fc74ad404bdca70951801263249c8",
+    "goodput_curve.csv": "987843a9eaae324c78e0793951cae1a1c16289eb8c87eed2df86f604a64261cc",
+    "metrics.json": "1896abd2aab3038b7f27821c8fd998582ba196ab03401c48f01d1b96cc97a472",
+    "policy_stats.json": "5dc70b0d0ae626e633cd3efff9dcfd01076d2ee589c6eff167d11b4b0f6dad72",
+    "recovery.json": "c519de717f9bf697ecae482eb9a7a6c599b062626973b10041129d816a035335",
+    "resolved_inputs.json": "f39dc4798864f94ef9cddc73dc8de28806cc18f207a87decc6a6d37796fe39a7",
+    "simulation_stats.json": "f42ca02772f6cbcae77624361baf0ddeb5203af613afe761e897fcca5350d78a"
+  }
+}

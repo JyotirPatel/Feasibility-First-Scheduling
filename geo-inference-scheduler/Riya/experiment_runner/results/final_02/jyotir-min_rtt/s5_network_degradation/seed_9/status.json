@@ -1,0 +1,20 @@
+{
+  "policy": "jyotir:min_rtt",
+  "scenario": "s5_network_degradation",
+  "seed": 9,
+  "simulator": "parikshit",
+  "nodes": 5,
+  "duration_s": 600.0,
+  "rate_rps": 80,
+  "status": "ok",
+  "bundle_sha256": {
+    "config.json": "3d088ab4f8f21454b61eec12168df4caaf575789e75061d055cb25a9e2b2c63e",
+    "decision_log.parquet": "0e0d0eff12d8134e6258f07a5ef1b7733bdf67d4f196bbbb522d011c8bb2563e",
+    "events.json": "ef145a9ebc5933ed6b73598328ac59751222532a61e554cfc3d33e0dfd791610",
+    "goodput_curve.csv": "bc224b364291b3707c7b6c8f2a399a669973fd756619c45038911c3fd072bc63",
+    "metrics.json": "33c48dd84129bfb3cfe68c536dc401fc5f6465a73192d79948be5c6ff4f4211b",
+    "recovery.json": "81620ce9c25b4721425c2f67edaff1d037e1831a901d5401f2cb615eb4775e9e",
+    "resolved_inputs.json": "32c9543e7c661060174d4a39c58f7e41369224229c67008a069131112cdb242c",
+    "simulation_stats.json": "d6233c3e30f51f0998c1837922c28282bb9ec1e3fed4b5df258441866a68347a"
+  }
+}

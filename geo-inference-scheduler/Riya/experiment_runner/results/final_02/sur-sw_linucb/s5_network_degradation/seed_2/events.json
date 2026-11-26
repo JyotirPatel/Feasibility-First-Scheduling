@@ -1,0 +1,21 @@
+{
+  "anchors": {
+    "t0": 200.0
+  },
+  "events": [
+    {
+      "at_s": 200.0,
+      "kind": "rtt",
+      "node": "us-east-nyc",
+      "delta_ms": 80.0
+    }
+  ],
+  "actual_events": [
+    {
+      "kind": "rtt",
+      "at_s": 200.0,
+      "node": "us-east-nyc",
+      "rtt_extra_ms": 80.0
+    }
+  ]
+}

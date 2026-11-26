@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "geo-inference-scheduler/Parikshit/telemetry/telemetry_schema_v1.json",
+  "title": "Node telemetry record, version 1",
+  "description": "One record per node per simulation tick (Project Brief §10.1). Owner: Parikshit. Read by the router (Krupesh), the feasibility filter (Jyotir) and the context vector (Sur). A minor version (1.x) may only add optional fields; renaming or removing a field needs version 2 and a message to the whole group.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "t",
+    "node_id",
+    "status",
+    "rtt_ms",
+    "queue_len",
+    "running",
+    "capacity",
+    "kv_used_frac",
+    "models_loaded",
+    "power_headroom_kw",
+    "temperature_c",
+    "energy_price_usd_kwh",
+    "gpu_price_usd_hr"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "Version of this schema. The router rejects other major versions.",
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$"
+    },
+    "t": {
+      "description": "Simulation time of the snapshot, in seconds since the start of the run.",
+      "type": "number",
+      "minimum": 0
+    },
+    "node_id": {
+      "description": "Unique node name, for example us-east-nyc.",
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "description": "up: serving normally. down: unreachable, takes no requests. warming: back after an outage and serving, but slower until its warm-up ends.",
+      "enum": ["up", "down", "warming"]
+    },
+    "rtt_ms": {
+      "description": "Round-trip network delay from each user region to this node, in milliseconds.",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "number", "minimum": 0}
+    },
+    "queue_len": {
+      "description": "Requests waiting at the node for a free slot (not yet started).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "running": {
+      "description": "Requests being served now (prefill or decode). Never more than capacity.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "capacity": {
+      "description": "Maximum number of requests the node serves at the same time.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "kv_used_frac": {
+      "description": "Share of the node's KV-cache memory in use, from 0 (empty) to 1 (full).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "models_loaded": {
+      "description": "Models the node can serve, for example [\"llama-3-8b\"].",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "power_headroom_kw": {
+      "description": "Power the node could still draw before reaching its site limit, in kW. 0 when the node is down.",
+      "type": "number",
+      "minimum": 0
+    },
+    "temperature_c": {
+      "description": "GPU temperature in degrees Celsius.",
+      "type": "number",
+      "minimum": -50,
+      "maximum": 150
+    },
+    "energy_price_usd_kwh": {
+      "description": "Electricity price at the node's site now, in US dollars per kWh.",
+      "type": "number",
+      "minimum": 0
+    },
+    "gpu_price_usd_hr": {
+      "description": "Rent of one of the node's GPUs, in US dollars per hour.",
+      "type": "number",
+      "minimum": 0
+    },
+    "kv_capacity_tokens": {
+      "description": "Optional (v1.0 extension): the node's KV-cache size in tokens, so the filter can check whether a request's input + output tokens still fit. null if unknown.",
+      "type": ["integer", "null"],
+      "minimum": 1
+    }
+  }
+}

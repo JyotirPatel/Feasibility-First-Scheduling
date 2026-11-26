@@ -1,0 +1,62 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 0.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 71.82000000000001,
+    "threshold_rps": 64.638,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 61.8,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 0.0,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.41993028501127744,
+        "pre_event_requests": 2048,
+        "pre_event_all_arrivals": 4877,
+        "first_120s_arrival_share": 0.0,
+        "first_120s_requests": 0,
+        "first_120s_all_arrivals": 9518,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4740
+      }
+    },
+    "reference_steady_goodput_rps": 71.82000000000001,
+    "reference_policy": "reference:true_state"
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 6.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 73.25666666666666,
+    "threshold_rps": 65.931,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 53.6,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": 187.79999999999995,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4752,
+        "first_120s_arrival_share": 0.025932431036264077,
+        "first_120s_requests": 251,
+        "first_120s_all_arrivals": 9679,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4859
+      }
+    },
+    "reference_steady_goodput_rps": 74.75,
+    "reference_policy": "reference:true_state"
+  }
+]

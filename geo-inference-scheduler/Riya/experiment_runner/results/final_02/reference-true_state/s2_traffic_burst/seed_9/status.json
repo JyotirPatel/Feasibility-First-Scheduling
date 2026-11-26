@@ -1,0 +1,20 @@
+{
+  "policy": "reference:true_state",
+  "scenario": "s2_traffic_burst",
+  "seed": 9,
+  "simulator": "parikshit",
+  "nodes": 5,
+  "duration_s": 600.0,
+  "rate_rps": 80,
+  "status": "ok",
+  "bundle_sha256": {
+    "config.json": "71ef10b791446933c808b52300dc6f6c5dfe6301515a69a62c1c1a72af29db81",
+    "decision_log.parquet": "473ed1514c37c789b41a46ec1aed0f14699ac4c75cb61d42fdf878bc517ee39b",
+    "events.json": "b3d80d406244dae53eabd26f10597405dd11397c932e8bb053504bca0bf527c9",
+    "goodput_curve.csv": "97e7e090f8fe1a8710b90dde0d31fb0d2a1f482ddc36773e32f3e1b4fdb82402",
+    "metrics.json": "abbecb7d698ce7ff6973409d317f75037a2cf21af850bdc2df8edf4ab64e7144",
+    "recovery.json": "e63c71b62e58affc643bb17405e23b90749f8aa824f76475e31cef48568efda6",
+    "resolved_inputs.json": "222fc09ec1fd3120f07f42a11cdbad0699f4b9328b1ba4343eb98cefeda919ab",
+    "simulation_stats.json": "b97ed3246dc81e3cecaacaf51e51348953369e47d127f0582d691d786f26f8f8"
+  }
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "anchor": "t0",
+    "t0_s": 200,
+    "is_control": false,
+    "adaptation_time_s": 0.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 53.60333333333333,
+    "threshold_rps": 48.243,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 48.6,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 320,
+    "lost_goodput_requests": 2212.2,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.27563304275633044,
+        "pre_event_requests": 1328,
+        "pre_event_all_arrivals": 4818,
+        "first_120s_arrival_share": 0.0,
+        "first_120s_requests": 0,
+        "first_120s_all_arrivals": 9642,
+        "steady_arrival_share": 0.0,
+        "steady_requests": 0,
+        "steady_all_arrivals": 4751
+      }
+    },
+    "reference_steady_goodput_rps": 71.33999999999997,
+    "reference_policy": "reference:true_state"
+  },
+  {
+    "anchor": "return",
+    "t0_s": 400,
+    "is_control": false,
+    "adaptation_time_s": 26.0,
+    "recovery_status": "recovered",
+    "steady_goodput_rps": 56.446666666666665,
+    "threshold_rps": 50.802,
+    "zero_steady_goodput": false,
+    "deepest_dip_rps": 47.6,
+    "recovery_search_end_s": 600,
+    "recovery_window_end_s": 520,
+    "lost_goodput_requests": 1963.4,
+    "lost_goodput_status": "paired myopic true-state reference; positive gap over fixed 120 s",
+    "node_traffic_shares": {
+      "us-east-nyc": {
+        "pre_event_arrival_share": 0.0,
+        "pre_event_requests": 0,
+        "pre_event_all_arrivals": 4885,
+        "first_120s_arrival_share": 0.22888486526786667,
+        "first_120s_requests": 2149,
+        "first_120s_all_arrivals": 9389,
+        "steady_arrival_share": 0.266219723183391,
+        "steady_requests": 1231,
+        "steady_all_arrivals": 4624
+      }
+    },
+    "reference_steady_goodput_rps": 71.13333333333334,
+    "reference_policy": "reference:true_state"
+  }
+]

@@ -2,7 +2,7 @@
 
 The current runner uses Parikshit's simulator, Krupesh's router, Jyotir's filter/baselines,
 and Sur's registered policies and reward. It supports the existing nested Krupesh upload;
-no teammate files need moving or editing. The previous 140 mock runs remain historical
+no teammate production files need moving or editing. The previous 140 mock runs remain historical
 integration checks and must not be reported as S1–S6 evaluation results.
 
 ## Install and run (PowerShell, from geo-inference-scheduler/Riya)
@@ -10,16 +10,16 @@ integration checks and must not be reported as S1–S6 evaluation results.
 ```powershell
 python -m pip install -r experiment_runner/requirements.txt
 python -m pytest tests -q
-python -X utf8 experiment_runner/run_evaluation.py --config experiment_runner/config_validation.json --output experiment_runner/results/validation_01
+python -X utf8 experiment_runner/run_evaluation.py --config experiment_runner/config_final_validation.json --output experiment_runner/results/final_validation --workers 6
 ```
 
-The validation config runs SW-LinUCB on S1, S2 and S6, seed 0. These are integration
+The final validation config runs round-robin, SW-LinUCB, no filter, no context and the true-state reference on S1, S2 and S6 with seed 0 (15 runs). These are integration
 checks; one seed is insufficient for report confidence intervals.
 
-The main config runs 7 policies × 6 scenarios × 10 seeds = **420 runs**:
+The final config runs the 420 main comparisons, 120 additional no-filter/no-context ablations and 60 true-state reference runs: **600 runs**. Plain LinUCB already supplies the no-forgetting ablation. Historical `config_simulator.json` remains available for the main-only grid.
 
 ```powershell
-python -X utf8 experiment_runner/run_evaluation.py --config experiment_runner/config_simulator.json --output experiment_runner/results/simulator_01
+python -X utf8 experiment_runner/run_evaluation.py --config experiment_runner/config_final.json --output experiment_runner/results/final_02 --workers 6
 ```
 
 Use a new output folder. If interrupted, rerun the exact same command with `--resume`.
@@ -60,15 +60,13 @@ better results. Ten-node load scaling requires an explicit team choice.
   true-state check. Its rate uses routed requests as denominator. `constraint_violations`
   remains a separate router/filter audit; neither is an assertion of safety certification.
 - Energy is kWh, cost is USD including the simulator's GPU attribution. Missing resource
-  values yield unavailable totals, not zero. TTFT and E2E p95/p99 use successful completed
+  values on routed requests yield unavailable totals. Rejected requests have zero execution-attributed consumption; raw and accounted coverage are both recorded. TTFT and E2E p95/p99 use successful completed
   outcomes (`ok`), including late outcomes, excluding rejected/failed/unfinished requests.
-- Lost goodput requires a policy-independent matched oracle and is explicitly unavailable
-  without it. The helper supports positive-gap area on [t0,t0+120); oracle selection and
-  this integration convention still require team agreement before reporting it.
+- The labelled true-state reference refreshes telemetry on every arrival and chooses minimum model TTFT with immediate slot and actual-memory admission. It is a privileged myopic reference, not a proven global upper bound. `finalize_reference.py` checks matching workload fingerprints and integrates positive smoothed-goodput deficits over [t0,t0+120). The reference label and steady level accompany the metric. Never silently substitute a static baseline for an oracle.
 
 ## Bundles, CIs and figures
 
-Each run includes persisted decision_log.csv, config.json, resolved_inputs.json,
+Each run includes persisted decision_log.parquet (CSV is an optional config setting), config.json, resolved_inputs.json,
 metrics.json, recovery.json, goodput_curve.csv, events.json, status.json and simulator
 stats; bandits also have policy_stats.json. The root includes exact experiment config,
 git commit when available and source/input SHA256 hashes. A downloaded ZIP has no Git
@@ -78,8 +76,10 @@ metadata, so its commit may be null; hashes still identify its inputs.
 `recovery_with_node_shares.csv`, `confidence_intervals.csv`, and `stable_noise_floor.csv` are rebuilt from saved bundles:
 
 ```powershell
-python experiment_runner/summarize_results.py --results experiment_runner/results/simulator_01
-python figures/plot_results.py --results experiment_runner/results/simulator_01
+python experiment_runner/summarize_results.py --results experiment_runner/results/final_02
+python experiment_runner/analyze_final.py --results experiment_runner/results/final_02
+python figures/plot_results.py --results experiment_runner/results/final_02
+python experiment_runner/verify_results.py --results experiment_runner/results/final_02 --deep
 ```
 
 Bootstrap means across seeds (2,000 resamples, fixed bootstrap seed), not across
@@ -88,21 +88,12 @@ conditional on recovered seeds; always show the recovery fraction and G*. Do not
 non-recovery with zero, or publish a CI from one smoke seed. The plots deliberately skip
 bar charts lacking 10-seed CIs. All figures read saved bundles only.
 
-## Commit only your changes
+## Source capture and caching
 
-Inspect before committing; never stage the virtual environment or scratch downloads.
-Keep the old sample fixtures as unit examples. Keep completed raw result bundles available
-with the exact code/config that generated them; consider a release archive if the team
-prefers not to store large logs directly in Git.
+Source/input snapshots exclude generated baseline logs, run results, checkpoints and previous snapshots. Compressed Azure traces are included. Workers are independent processes with one BLAS thread; policy-independent workload fingerprints must match. Resume checks every recorded bundle hash and rejects changed code/config/environment inputs. Base Git commit plus exact SHA256 snapshots identify local integration changes that were not yet committed at execution time.
 
-```powershell
-git status --short
-git add experiment_runner/run_evaluation.py experiment_runner/summarize_results.py experiment_runner/config_simulator.json experiment_runner/config_validation.json experiment_runner/requirements.txt experiment_runner/README.md metrics/evaluate_log.py metrics/recovery.py tests figures/plot_results.py Riya_WORK_LOG.md
-git diff --cached --stat
-git commit -m "Integrate simulator evaluation and frozen recovery metrics"
-git push origin main
-```
+`verify_results.py --deep` checks the entire grid and hashes, then recomputes metrics from raw logs. `analysis/main_run_coverage.json` isolates the main 420; root `run_coverage.json` covers all 600.
 
-These commands stage code/documentation. Stage a completed result directory separately
-only after checking its statuses, workload pairing and provenance. This patch does not
-change teammates' filter/router behavior or resolve their report sections.
+## Save and commit
+
+See [FINAL_RUN_COMMANDS.md](FINAL_RUN_COMMANDS.md) for the end-to-end commands and [integration notes](../report/INTEGRATION_NOTES.md) for definitions and module validation. Keep raw logs available alongside the compact code, tables, curves and figures. Avoid staging the virtual environment or several gigabytes of raw results with `git add .`. The delivery's `START_HERE.md` provides explicit staging commands.
