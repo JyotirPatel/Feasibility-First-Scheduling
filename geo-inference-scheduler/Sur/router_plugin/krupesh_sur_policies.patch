@@ -1,0 +1,129 @@
+--- a/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/router_service/registry.py
++++ b/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/router_service/registry.py
+@@ -5,7 +5,8 @@
+                           (<baseline> in round_robin, min_rtt, least_load, lowest_energy,
+                           static_weighted, power_of_two)
+     "mock:learning"       MOCK learning policy standing in for Sur's LinUCB (integration only)
+-    "sur:<name>"          reserved for Sur's real policies once they exist (register below)
++    "sur:<name>"          Sur's policies: sur:linucb, sur:sw_linucb, sur:sw_linucb_no_context
++                          (registered below from Sur/router_plugin when Sur's folder is found)
+ 
+ Filter names:
+     "jyotir"              Jyotir's ORIGINAL feasibility filter via the adapter
+@@ -14,7 +15,9 @@
+ 
+ from __future__ import annotations
+ 
++import sys
+ from collections.abc import Callable
++from pathlib import Path
+ 
+ from api_contract.types import FilterFn, FilterResult, NodeState, Request
+ from router_service.policy_base import Policy
+@@ -35,6 +38,33 @@
+ NEEDS_SUR = {"linucb", "sliding_window_linucb"}
+ 
+ 
++def _register_sur() -> Callable | None:
++    """Register Sur's policies (Sur/router_plugin) under their sur: names only and return Sur's
++    reward function. The plain names in NEEDS_SUR stay unregistered. None if Sur's folder is absent."""
++    for parent in Path(__file__).resolve().parents:
++        sur = parent / "Sur"
++        if (sur / "router_plugin").is_dir():
++            break
++    else:
++        return None
++    if str(sur) not in sys.path:
++        sys.path.append(str(sur))
++    from router_plugin import register, reward_fn
++
++    names: dict = {}
++    register(names)
++    EXTRA_POLICIES.update({k: v for k, v in names.items() if k.startswith("sur:")})
++    return reward_fn
++
++
++SUR_REWARD_FN = _register_sur()
++
++
++def reward_for(policy: str, default: Callable) -> Callable:
++    """The engine's reward: Sur's reward for Sur's policies, `default` (the labelled mock) otherwise."""
++    return SUR_REWARD_FN if SUR_REWARD_FN is not None and policy.startswith("sur:") else default
++
++
+ def build_policy(name: str, seed: int = 0, **params) -> Policy:
+     if name in EXTRA_POLICIES:
+         return EXTRA_POLICIES[name](seed=seed, **params)
+--- a/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/router_service/app.py
++++ b/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/router_service/app.py
+@@ -7,6 +7,7 @@
+     uvicorn router_service.app:app --port 8000
+ 
+ Default engine: Jyotir's original filter + Jyotir's static-weighted baseline, MOCK reward.
++Sur's policies (sur:*) are registered in router_service/registry.py and use Sur's reward.
+ Environment overrides: KRUPESH_POLICY, KRUPESH_FILTER, KRUPESH_SEED, KRUPESH_LOG_PATH.
+ """
+ 
+@@ -31,7 +32,7 @@
+ from decision_log.writer import DecisionLogWriter
+ from integration.mocks.mock_reward import mock_reward
+ from router_service.engine import RoutingEngine, RunMeta, UnknownRequest
+-from router_service.registry import build_filter, build_policy
++from router_service.registry import build_filter, build_policy, reward_for
+ 
+ 
+ def make_engine(cfg: ConfigureRequest) -> RoutingEngine:
+@@ -39,7 +40,7 @@
+     return RoutingEngine(
+         policy=policy,
+         filter_fn=build_filter(cfg.filter),
+-        reward_fn=mock_reward,  # TODO(Sur): replace with Sur's reward function
++        reward_fn=reward_for(cfg.policy, mock_reward),  # Sur's reward for sur:* policies
+         meta=RunMeta(cfg.run_id, cfg.seed, cfg.scenario, cfg.policy),
+         writer=DecisionLogWriter(cfg.log_path),
+         local_load_accounting=cfg.local_load_accounting,
+--- a/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/integration/run_end_to_end.py
++++ b/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/integration/run_end_to_end.py
+@@ -28,7 +28,7 @@
+ from integration.mocks.mock_simulator import MockCluster
+ from router_service.client import HttpRouter
+ from router_service.engine import RoutingEngine, RunMeta
+-from router_service.registry import build_filter, build_policy
++from router_service.registry import build_filter, build_policy, reward_for
+ 
+ 
+ def run(
+@@ -57,7 +57,7 @@
+         router = RoutingEngine(
+             policy=build_policy(policy, seed=seed),
+             filter_fn=build_filter(filter_name),
+-            reward_fn=mock_reward,
++            reward_fn=reward_for(policy, mock_reward),  # Sur's reward for sur:* policies
+             meta=RunMeta(run_id, seed, "mock_outage" if outage else "mock_stable", policy),
+             writer=DecisionLogWriter(),
+             audit_fn=build_filter("jyotir"),
+--- a/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/integration/mocks/mock_reward.py
++++ b/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/integration/mocks/mock_reward.py
+@@ -4,7 +4,8 @@
+ feedback path can be tested:
+     r = 1.0*[SLO met] - 0.3*min(TTFT/1000 ms, 1) - 0.2*min(energy cost/$0.0001, 1)
+         - 0.1*clip((T - 70)/(85 - 70), 0, 1)
+-TODO(Sur): replace with the real reward (weights from configs, owned by Sur).
++Sur's real reward (Sur/router_plugin, weights in Sur/configs) is used for Sur's policies through
++router_service.registry.reward_for; this mock stays for plumbing tests and the baselines.
+ Required signature: reward_fn(outcome: Outcome, node_at_dispatch: NodeState) -> float
+ """
+ 
+--- a/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/integration/mocks/mock_policy.py
++++ b/geo-inference-scheduler/Krupesh/geo-inference-scheduler/Krupesh/integration/mocks/mock_policy.py
+@@ -5,8 +5,8 @@
+ seconds later, and keeps a running mean reward per (node, user_region). It picks the best
+ mean, trying every (node, region) pair once first. No contexts, no confidence bounds.
+ 
+-TODO(Sur): replace with LinUCB and sliding-window LinUCB implementing router_service.policy_base.Policy,
+-then register them in router_service/registry.py (EXTRA_POLICIES["sur:sw_linucb"] = ...).
++Sur's LinUCB and sliding-window LinUCB are registered in router_service/registry.py as
++sur:linucb, sur:sw_linucb and sur:sw_linucb_no_context; this mock stays for plumbing tests.
+ """
+ 
+ from __future__ import annotations

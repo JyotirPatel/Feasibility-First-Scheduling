@@ -1,6 +1,6 @@
 # Method: choosing a node with a learning policy
 
-*Draft by Sur for the report. Riya merges it into the full report. Citation keys refer to `../citations/references.bib`. The numbers come from the window sweep on the project simulator, run through the project's router and feasibility filter (`../window_sweep/RESULTS.md`).*
+*By Sur. Riya condensed it into §2 of the final report (`Riya/report/Group20_Final_Report.md`). Citation keys refer to `../citations/references.bib`. The numbers come from the window sweep on the project simulator, run through the project's router and feasibility filter (`../window_sweep/RESULTS.md`). Two results of the final evaluation that concern the method are explained in `final_evaluation_notes.md`.*
 
 ## Where the policy sits in the loop
 
@@ -83,7 +83,8 @@ The sweep showed the following.
 
 - **The policy learns which sites can meet the SLO.** It sends about 98 % of requests to the two H100 sites:
   - interactive requests almost all to San Jose, and batch requests mostly to New York;
-  - the A100 sites, which cannot start most interactive requests within 250 ms, get under 2 %.
+  - the A100 sites, which cannot start most interactive requests within 250 ms, get under 2 %;
+  - in seeds 3, 8 and 9 the two H100 sites swap roles (New York takes the interactive requests), which matters when New York changes (`final_evaluation_notes.md`).
 
   In the stable scenario, plain LinUCB and every per-node window meet the TTFT SLO for 90.7 % of requests (72.2 SLO-met requests/s). The six baselines reach 68–77 %.
 - **A per-node window costs nothing while nothing changes; a global window does.**

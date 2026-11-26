@@ -1,5 +1,7 @@
 # Sur — LinUCB + Sliding-Window Policy + Reward
 
+**Owner:** Sur. This folder holds the learning policy (plain and sliding-window LinUCB), its context vector and reward, the window sweep, and the method section of the report.
+
 **Project:** Change-Aware, Feasibility-First Scheduling for AI Inference across Geo-Distributed Nodes
 **Course:** AMS 560 · Big Data Systems, Algorithms and Networks · Fall 2026 · Group 20
 
@@ -119,7 +121,8 @@ Every task above is implemented and tested. Each folder has its own README with 
 | 6. Citations | `citations/` | done: BibTeX and plain text, checked against Crossref (the publishers' records) or the official proceedings pages |
 | Parameter files | `configs/policies/` | `linucb.yaml`, `sw_linucb.yaml`, `sw_linucb_no_context.yaml`; no numbers in the Python code |
 | Checkpoints | `checkpoints/` | save/load in both policies (`.npz`, no pickle); checkpoints of the default policies from the sweep on Parikshit's simulator (`checkpoints/simulator/`) |
-| Method section draft | `report/method_section.md` | draft for Riya to merge into the report |
+| Method section | `report/method_section.md` | Riya condensed it into §2 of the final report (`Riya/report/Group20_Final_Report.md`) |
+| Notes on the final evaluation | `report/final_evaluation_notes.md`, `window_sweep/final_eval_check.py` | why the "no context" ablation wins S4–S6, and why the S6 outage recovery looks slower; every number regenerated from Riya's bundle |
 | Router plug-in | `router_plugin/` | done: the policies as subclasses of Krupesh's `Policy`, `reward_fn` in his `RewardFn` shape, registry names, and his handbook's end-to-end acceptance check (`router_plugin/check_router.py`) |
 | Tests | `tests/` | every module tested (`python3 -m pytest geo-inference-scheduler/Sur/tests -q`) |
 
@@ -128,6 +131,11 @@ Install: `python3 -m pip install -r geo-inference-scheduler/Sur/requirements.txt
 ### For Krupesh (router)
 
 Your router plugs in through `router_plugin/`. Details are in `router_plugin/README.md`.
+
+**Your code still has the `TODO(Sur)` notes.** Nothing registers Sur's policies in your `registry.py`, and `app.py` and `run_end_to_end.py` use `mock_reward`. So your handbook's acceptance test (`python -m integration.run_end_to_end --policy sur:sw_linucb`) fails with "unknown policy", and so does the HTTP service.
+- `router_plugin/krupesh_sur_policies.patch` makes the changes your handbook §5.3 asks for. Apply it from the repo root with `git apply`.
+- It was tested on a copy of your folder: the acceptance test passes, and your suite gives the same results with it as without it.
+- Details are in `router_plugin/README.md`.
 
 ```python
 from router_plugin import register, reward_fn  # with geo-inference-scheduler/Sur on sys.path
@@ -143,10 +151,7 @@ engine = RoutingEngine(policy=build_policy("sur:sw_linucb", seed=seed), filter_f
 - **Reward.** The policy recomputes the reward itself; with `reward_fn` it equals your `outcome.reward`. A difference is counted in `stats["reward_mismatch"]`, for example if `mock_reward` is still wired in. A `failed=True` outcome gets no SLO credit and the worst latency.
 - **Fields.** The SLO deadline is read from `ttft_slo_ms` (your contract) or `slo_ms` (Jyotir's stub).
 - **Threads.** `choose()` and `update()` are thread-safe.
-- **Your upload's location.** Your upload sits at `Krupesh/geo-inference-scheduler/Krupesh/`.
-  - There, your adapter cannot find Jyotir's folder, and 29 of your 35 tests fail.
-  - Moving the folder up one level fixes it. On a copy, 30 pass and 1 is skipped; the 4 others need `pyarrow`.
-  - The plug-in finds your code in either place.
+- **Your upload's location.** Your upload sits at `Krupesh/geo-inference-scheduler/Krupesh/`. Your adapter's path to Jyotir's folder has since been fixed (`parents[4]`), and the plug-in finds your code in either place.
 - **Your handbook's open decisions owned by Sur (§7).**
   - **#3, window counted globally or per node:** Sur's default is **per node**, with W = 500 (`window_sweep/RESULTS.md`, on Parikshit's simulator through your router).
     - In S1, global windows lose goodput at every W ≤ 2000 (61.6 req/s at W = 200, against 72.2 for every per-node window).
@@ -154,6 +159,7 @@ engine = RoutingEngine(policy=build_policy("sur:sw_linucb", seed=seed), filter_f
   - **#4, reward weights:** Sur's are 1.0 / 0.2 / 0.1 / 0.1 (`configs/policies/sw_linucb.yaml`), so the SLO term dominates.
     - Scales: latency 1,000 ms; energy cost $0.00001, about the 99th percentile of a request's energy cost on Parikshit's simulator (the earlier $0.0002 left the energy term near 0 there); thermal 60 → 85 °C.
     - With these weights the policy ignores prices: S3 does not change its routing (`window_sweep/RESULTS.md`, finding 5).
+    - **Decided:** the final evaluation kept these weights. Price-aware routing is listed in the final report as future work.
     - The 1.0 / 0.3 / 0.2 / 0.1 in the handbook are your mock reward's placeholders.
 
 ### For Riya (experiments)
@@ -164,8 +170,8 @@ engine = RoutingEngine(policy=build_policy("sur:sw_linucb", seed=seed), filter_f
 - **Policy identifiers** (each class's `name`, also written to checkpoints):
   - `linucb` is `LinUCB` with `linucb.yaml`.
   - `sw_linucb` is `SlidingWindowLinUCB` with `sw_linucb.yaml`. The "no context" ablation is the same class with `sw_linucb_no_context.yaml`.
-  - Your planner (`Riya/experiment_runner/config.json`) currently calls the second one `sliding_window_linucb`, and it does not list the "no context" ablation yet.
-- **Goodput binning:** the sweep's metric (`standins/adaptation.py`) counts a request in the second it arrived. Your runner counts SLO successes by completion time. Agree on one before the adaptation-time metric is final.
+  - Your final configuration (`Riya/experiment_runner/config_final.json`) uses the registry names `sur:sw_linucb`, `sur:linucb` and `sur:sw_linucb_no_context`.
+- **Goodput binning:** the sweep and your final evaluation both count a request in the second it arrived.
 - **Window sweep:** run on Parikshit's simulator through Krupesh's router, the same pipeline as your runner.
   - `window_sweep/results/summary.csv` has the means and 95% bootstrap CIs over 10 seeds.
   - The tables in `window_sweep/RESULTS.md` are generated from it by `window_sweep/make_tables.py`.
@@ -185,7 +191,7 @@ These come from the window sweep on Parikshit's simulator through Krupesh's rout
    - When reporting a recovery time, show the node's traffic share next to it.
 3. **The policy ignores prices with the current weights (1.0 / 0.2 / 0.1 / 0.1).**
    - In S3, the share of traffic to California stays at 72–73 % after California becomes the expensive region.
-   - Price-aware routing needs a larger energy weight. That is a team decision (handbook §7, #4) to make before the final runs.
+   - Price-aware routing would need a larger energy weight. The team kept these weights for the final evaluation, so S3 routes as S1 does; the final report lists a reward-weight study as future work.
 4. **The router's view is up to 1 s old.** In S2 and S4 the policy (and every baseline) reaches nodes that have just crossed the power or temperature limit, as Parikshit's true-state check shows.
    - Per-node W = 500: about 3,200 such requests per S2 run and 142 per S4 run.
    - Counting the router's own placements against power and temperature, as it does for load, would cut this.
@@ -193,8 +199,14 @@ These come from the window sweep on Parikshit's simulator through Krupesh's rout
    - The bug: a `warming` node skipped the memory, power and temperature checks (`filter.py`, rule 1 returned early).
    - It never affected the runs on Parikshit's simulator: the warming node never nears those limits there, and re-running sweep jobs with the fixed filter gives identical numbers.
    - `tests/test_toy_cluster.py::test_s6_warming_node_respects_hard_rules`, an expected failure until then, now guards the fix.
-   - **One regression came with the fix:** when a node reports `kv_capacity_tokens`, the memory rule checks the request against 100 % of the memory and ignores the configured 90 % limit (`kv_cache_max_frac`). A node 95 % full still accepts a small request. Jyotir should compare against `kv_cache_max_frac × kv_capacity_tokens`.
+   - **One regression came with the fix, and it is fixed too.** When a node reported `kv_capacity_tokens`, the memory rule ignored the configured 90 % limit (`kv_cache_max_frac`). Jyotir fixed it in 5e3b1a6. The sweep ran before his fix and Riya's final evaluation after it. For both W = 500 and plain LinUCB, all 60 runs (6 scenarios × 10 seeds) have exactly the same request and SLO-met counts in both (`window_sweep/final_eval_check.py`, part 0).
 6. **The adaptation-time metric.**
    - **Noise floor.** In S1, where nothing changes, plain LinUCB and W = 500 show a non-zero time in 4 of 10 seeds (4–12 s), because the interactive arrivals are bursty. Read every scenario's time against that floor.
    - **S6** needs the second anchor at the node's return (400 s), as the sweep does.
-   - **Binning.** The sweep bins requests by arrival, and Riya's runner by completion; the team should fix one.
+   - **Binning.** The sweep and Riya's final evaluation both bin requests by arrival time.
+
+### The final evaluation (Riya, 2026-11-26)
+
+- **It ran this folder's code unchanged.** Every code, config and test file it saved from `Sur/` is identical to the one here. It used the shipped defaults: a per-node window with W = 500, α = 1, weights 1.0 / 0.2 / 0.1 / 0.1 and an energy scale of $0.00001.
+- **Its numbers for these policies match the sweep.** In S2, W = 500 adapts in 20.4 s against 33.6 s for plain LinUCB, with 91.85 against 90.62 req/s.
+- **Two of its results needed an explanation:** the "no context" ablation beating the full policy in S4–S6, and the slower recovery after the S6 outage. Both are explained in `report/final_evaluation_notes.md`, which also has suggested sentences for the final report.

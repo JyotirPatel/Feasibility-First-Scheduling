@@ -2,10 +2,14 @@
 **AMS 560 · Group 20 · Fall 2026**
 **Professor's remark:** *"Prioritize resolving integration issues and completing end-to-end comparisons."*
 
+*Updated by Sur on 2026-11-26, after Riya's final evaluation.*
+
 ---
 
 ## Status Summary
-LinUCB, sliding-window LinUCB, context vector, reward function, router plug-in, and the full window sweep (1,350 runs on the real pipeline) are complete. One key team decision blocks finalising the S3 results. One optional re-run after Jyotir's fix.
+All of Sur's items are done.
+- Riya's final evaluation (`Riya/experiment_runner/results/final_02`) ran Sur's code unchanged, with the shipped defaults: a per-node window with W=500, α=1 and weights 1.0/0.2/0.1/0.1.
+- Its numbers for these policies match the window sweep.
 
 ---
 
@@ -17,49 +21,45 @@ LinUCB, sliding-window LinUCB, context vector, reward function, router plug-in, 
 | Sliding-window LinUCB (`sliding_window_linucb/sw_linucb.py`) | Per-node and global window modes; shipped default W=500, α=1 |
 | Context vector builder (`context_vector/features.py`) | 14 scaled features; handles both `ttft_slo_ms` and `slo_ms` naming |
 | Reward function (`reward/reward.py`) | YAML-configurable weights; SLO/latency/energy/thermal terms |
-| Router plug-in (`router_plugin/plugin.py`) | `register()` adds `sur:linucb`, `sur:sw_linucb`, `linucb`, `sliding_window_linucb` to Krupesh's registry |
+| Router plug-in (`router_plugin/plugin.py`) | `register()` adds `sur:linucb`, `sur:sw_linucb`, `sur:sw_linucb_no_context`, `linucb`, `sliding_window_linucb` to Krupesh's registry |
 | Window sweep (1,350 runs) | W ∈ {200,500,1000,2000,5000,10000,20000}, per-node and global, all 6 scenarios, 10 seeds |
 | Sweep results and tables | `window_sweep/RESULTS.md` with Tables A–G; `results/summary.csv` and figures |
 | All tests | Test suite passes; `test_figures_and_tables.py` verifies RESULTS.md matches bundle |
-| Method section of report | Drafted in `report/method_section.md` |
+| Method section of report | `report/method_section.md`; Riya condensed it into §2 of the final report |
+| Notes on the final evaluation | `report/final_evaluation_notes.md` (numbers from `window_sweep/final_eval_check.py`). They explain why the "no context" ablation wins S4–S6 and why the S6 outage recovery looks slower, with suggested sentences for the final report. |
+| Patch for Krupesh's router | `router_plugin/krupesh_sur_policies.patch` resolves the `TODO(Sur)` notes in his code. It registers Sur's policies in `registry.py` and uses Sur's reward for them in `app.py` and `run_end_to_end.py`, as his handbook §5.3 asks. On a copy of his folder, his acceptance test (`python -m integration.run_end_to_end --policy sur:sw_linucb`) passes with it and fails without it, and his suite is unchanged. It is his decision to apply it. |
 
 ---
 
-## 2. Team Decision Required Before Final Runs
+## 2. Reward weights for S3 — decided: keep them
 
-### Reward weights — energy scale for price-aware routing (S3)
-*(RESULTS.md finding 5)*
-
-**Current weights:** SLO = 1.0, latency = 0.2, energy = 0.1, thermal = 0.1
-**Current `energy_cost_max_usd`:** $0.00001 (99th percentile of a request's energy cost)
-
-With these weights, the learned policies give **exactly the same results in S3 (price shift) as in S1 (stable)** — routing does not change despite California prices jumping from ~$0 to $0.046–0.050/kWh. The energy term moves the reward by only ~0.01 per request, so it is dominated by the SLO term.
-
-**What is needed:** A team decision on whether the final paper should show price-aware routing in S3. Options:
-
-| Option | Change | Trade-off |
-|---|---|---|
-| Keep current weights | No change | S3 looks identical to S1; lowest-energy is the only policy that reacts |
-| Raise energy weight | Increase `energy` weight or raise `energy_cost_max_usd` | Policy shifts traffic in S3; SLO term no longer wins every trade-off; may lose ~1–2 req/s goodput in S1 |
-
-**Who decides:** Whole team; **must be decided before Riya runs the final grid.** Changing weights after the run means re-running.
-
-The reward config is `Sur/configs/policies/sw_linucb.yaml`. Krupesh's handbook §7, item 4 tracks this decision.
+The final evaluation ran with the current weights: SLO 1.0, latency 0.2, energy 0.1, thermal 0.1, and `energy_cost_max_usd` $0.00001. Its saved copies of all three policy files show these values.
+- **S3 against S1.** S3 gives exactly S1's SLO-met count in every seed, for both learned policies.
+- **Why.** After the price shift, a San Jose request loses about 0.02 of reward, against about 1.0 for meeting the SLO (`window_sweep/final_eval_check.py`, part 6).
+- **Future work.** The final report lists a reward-weight study as future work. Changing the weights now would mean re-running the 240 final runs that learn from this reward: both learned policies and the no-context and no-filter ablations.
+- **For anyone who revisits this:**
+  - The lever is the energy weight. Raising `energy_cost_max_usd` makes the energy signal weaker, not stronger.
+  - Below an energy weight of 0.7, meeting the SLO always beats missing it (1.0 > 0.2 + energy + 0.1). From 0.7 up, the weights no longer guarantee that.
 
 ---
 
-## 3. Optional Re-Run After Jyotir's Fix
+## 3. Re-check after Jyotir's fix — done, on every run
 
-Jyotir fixed the `kv_cache_max_frac` regression on 2026-11-10 (token-exact memory path now enforces the 90% threshold instead of 100%). Sur's sweep ran with the pre-fix filter.
-
-**Expected impact:** Minor. Sur's RESULTS.md notes that no S6 true-state violations involved the warming node, and the fix only tightens the memory check by 10% of capacity. Nodes between 90–100% KV fill that were previously accepted will now be rejected.
-
-**Recommendation:** Re-run a quick spot check on S2 and S4 (the scenarios with the most true-state violations) with 1 seed to confirm numbers are stable before Riya's full grid. If numbers match, no full re-run is needed.
+The window sweep ran before Jyotir's `kv_cache_max_frac` fix (5e3b1a6), and Riya's final evaluation ran after it.
+- For both learned policies, all 60 runs (6 scenarios × 10 seeds) have exactly the same request and SLO-met counts in the two (`final_eval_check.py`, part 0).
+- A test re-checks this.
+- The spot check the team suggested (S2 and S4 with one seed) was also re-run on the current code with `window_sweep/run_sweep.py`: seed 0, the default policy and plain LinUCB. All 4 runs match the sweep in every field except wall-clock run time.
+- No full re-run was needed.
 
 ---
 
-## 4. Figures Still Needed for the Report
+## 4. Figures — confirmed
 
-The window sweep produced its own figures (goodput-over-time, window vs. adaptation time, α check). These are for the **method section only**. The figures Riya will generate from the full grid (goodput bar charts with 95% bootstrap CIs per policy × scenario) are separate and cover the **evaluation/results sections**. Sur does not need to produce these.
+All 10 figures in `window_sweep/results/figures/` are byte-identical to the ones `python3 window_sweep/make_figures.py` regenerates from `results/` (Parikshit's simulator). None matches the `results_standin/` version (checked 2026-11-26 with matplotlib 3.10.8). The figures are:
+- `goodput_<scenario>.png` × 6
+- `window_adaptation.png`
+- `window_steady_level.png`
+- `window_goodput.png`
+- `alpha_check.png`
 
-**Sur's one outstanding figure item:** confirm that `window_sweep/results/figures/` contains all 5 figures listed in RESULTS.md (`goodput_<scenario>.png` × 6, `window_adaptation.png`, `window_steady_level.png`, `window_goodput.png`, `alpha_check.png`) and that they were generated from `results/` (not `results_standin/`).
+They are for the method section only; the evaluation figures are Riya's.

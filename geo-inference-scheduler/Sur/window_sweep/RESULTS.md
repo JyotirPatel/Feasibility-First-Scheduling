@@ -89,11 +89,12 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 
 5. **The price shift does not change the learned routing (S3, Table E).** S3 gives the learned policies exactly the S1 numbers.
    - **Routing.** With a per-node window of W = 500 (seed 0), 72.0 % of requests go to the California sites before the shift and 73.0 % after (S1: 72.0 % and 73.2 %), although California's prices jump from about $0 to $0.046–0.050/kWh.
-   - **Why.** With the reward weights 1.0 / 0.2 / 0.1 / 0.1, meeting the SLO dominates, and after the shift the energy term moves the reward by only about 0.01.
+   - **Why.** With the reward weights 1.0 / 0.2 / 0.1 / 0.1, meeting the SLO dominates. After the shift, the energy term lowers a San Jose request's reward by about 0.02 on average (at most 0.09) and leaves New York's unchanged, while meeting rather than missing the SLO is worth about 1.0.
+   - **Effect, seed 0** (`final_eval_check.py`, part 6). The shift changes 195 of 47,856 choices, and the number of SLO-met requests stays exactly the same.
    - **Only lowest-energy reacts:** 61.1 → 54.0 req/s.
    - **What it would take.** A price-aware policy needs a larger energy weight; that is the team's reward-weights decision (Krupesh's handbook §7, #4).
 
-6. **S4 and S5: windows neither help nor hurt (Table E).** All per-node windows are within each other's intervals and plain LinUCB's: 71.3–71.9 req/s in S4 and 70.5–71.0 in S5. Both changes hit the New York site, which serves mostly batch requests, whose 1,000-ms SLO absorbs the throttling and the +80 ms.
+6. **S4 and S5: windows neither help nor hurt (Table E).** All per-node windows are within each other's intervals and plain LinUCB's: 71.3–71.9 req/s in S4 and 70.5–71.0 in S5. Both changes hit the New York site. In most seeds New York serves mostly batch requests, whose 1,000-ms SLO absorbs the throttling and the +80 ms. In seeds 3, 8 and 9 it serves the interactive ones; see `../report/final_evaluation_notes.md`.
 
 7. **Exploration: α = 1 is the robust choice (Table D).**
    - **S1:** α = 0.1 and 0.5 give 0.2 req/s more (72.5 against 72.2), within the intervals.
@@ -255,17 +256,22 @@ It supersedes the earlier sweep on the stand-in simulator (`RESULTS_standin.md`)
 
 ## For the team
 
-1. **Reward weights (Sur and the team; handbook §7, #4).** With 1.0 / 0.2 / 0.1 / 0.1 the policy ignores prices (finding 5). If the report should show price-aware routing, the energy weight must grow, and the SLO term then no longer wins every trade-off. Decide this before the final runs.
+1. **Reward weights (Sur and the team; handbook §7, #4).** With 1.0 / 0.2 / 0.1 / 0.1 the policy ignores prices (finding 5). If the report should show price-aware routing, the energy weight must grow, and the SLO term then no longer wins every trade-off. **Outcome:** the final evaluation kept these weights (`Riya/report/FINAL_RESULTS.md`), and the final report lists a reward-weight study as future work.
 2. **Adaptation-time metric (Riya).**
    - **Binning.** This sweep bins by arrival time (the moment of the decision), while Riya's runner bins by completion time. The team should fix one.
    - **Noise floor.** In S1, where nothing changes, plain LinUCB and per-node W = 500 show a non-zero time in 4 of 10 seeds (4–12 s; mean 3.8 s), because the interactive arrivals are bursty. Read every scenario's time against this floor.
    - **Abandonment.** A short time can mean the policy stopped using the node (finding 4), so show the traffic share next to it.
    - **S6 needs a second anchor** at the node's return (400 s), as done here.
+   - **Outcome:** Riya's final evaluation does all four: it bins by arrival time, reports the S1 noise floor, shows the returned node's traffic share and uses both S6 anchors.
 3. **Telemetry age (Krupesh and Parikshit).** The router's view is up to 1 s old, so in S2 and S4 requests reach nodes that have just crossed a limit (finding 8). Either of these would reduce it:
    - counting the router's own recent placements against power and temperature, as it already does for load;
    - a shorter telemetry tick.
-4. **Jyotir's warming-node bug is fixed (his commit 59b63af), and it never affected these runs.** The bug let a warming node skip the memory, power and temperature checks. On Parikshit's simulator the warming node never comes near those limits: none of the S6 true-state violations involve it (finding 8), and sweep jobs re-run with the fixed filter give identical numbers. His fix brought one regression (Jyotir): when a node reports `kv_capacity_tokens`, the memory rule compares against 100 % of the memory instead of `kv_cache_max_frac` (0.90).
-5. **The S2 burst is mild (Parikshit's README, item 5).** At 80 requests/s the 3× burst stays below the cluster's maximum throughput, so an even spread absorbs it. A harder S2 (a higher base rate) would separate the policies more.
+
+   **Outcome:** neither was adopted. The final report lists telemetry age as a limitation.
+4. **Jyotir's warming-node bug is fixed (his commit 59b63af), and it never affected these runs.** The bug let a warming node skip the memory, power and temperature checks. On Parikshit's simulator the warming node never comes near those limits: none of the S6 true-state violations involve it (finding 8), and sweep jobs re-run with the fixed filter give identical numbers. His fix brought one regression (Jyotir): when a node reports `kv_capacity_tokens`, the memory rule compares against 100 % of the memory instead of `kv_cache_max_frac` (0.90). **Outcome:** Jyotir fixed the regression in 5e3b1a6. Riya's final evaluation ran with his fix. For both the default and plain LinUCB, all 60 runs have exactly this sweep's request and SLO-met counts (`final_eval_check.py`, part 0).
+5. **The S2 burst is mild (Parikshit's README, item 5).** At 80 requests/s the 3× burst stays below the cluster's maximum throughput, so an even spread absorbs it. A harder S2 (a higher base rate) would separate the policies more. **Outcome:** the final evaluation kept 80 requests/s.
+
+Riya's final evaluation (600 runs) repeats this sweep's runs of the default and plain LinUCB. Its mean goodput is within 0.03 req/s of this sweep's in every scenario, because it averages the raw 1-s bins and this sweep averages the 5-s smoothed ones. Two of its results, the "no context" ablation beating the full policy in S4–S6 and the slower S6 outage recovery, are explained in `../report/final_evaluation_notes.md`.
 
 ## Figures (`results/figures/`)
 

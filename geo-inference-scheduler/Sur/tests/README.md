@@ -24,5 +24,6 @@ python3 -m pytest geo-inference-scheduler/Sur/tests -q
 | `test_diagnostics.py` | the diagnostics script (S6 rush, queue, share, counterfactual; S1 load and metric noise), that watching a run does not change it, that Jyotir's baselines work in every check, and the `--fixed-filter` what-if |
 | `test_figures_and_tables.py` | the figure and table scripts, and that every table in `window_sweep/RESULTS.md` equals what `summary.csv` gives |
 | `test_router_plugin.py` | Sur's policies and reward inside Krupesh's router (his code, unmodified): `Policy` subclasses, registry names, his typed `Request` / `NodeState` / `Outcome`, failed requests, the end-to-end acceptance check, and catching a router still on his mock reward |
+| `test_final_eval_check.py` | the checks on Riya's final evaluation: the adaptation-time helper against the frozen definition, that Jyotir's filter fix changed none of the sweep's runs, and that her bundle supports the numbers in `report/final_evaluation_notes.md` (skipped without her bundle) |
 
 `test_s6_warming_node_respects_hard_rules` used to be marked **expected to fail** (`xfail`), recording a bug in Jyotir's filter where a warming node skipped the other hard rules. Jyotir fixed it in commit 59b63af, so the marker is gone and the test now guards the fix.

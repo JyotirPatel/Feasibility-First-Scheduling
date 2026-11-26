@@ -12,6 +12,7 @@ This folder holds the window-size sweep and the exploration-parameter (α) check
 | `make_figures.py` | makes every figure from the bundle only |
 | `make_tables.py` | makes every table of `RESULTS.md` from `results/summary.csv` (`--update` rewrites them in place) |
 | `diagnostics.py` | per-seed checks behind `RESULTS_standin.md`, on the stand-in: S6 rush, peak queue, traffic share, lowest goodput, violations, per-second trace, counterfactual; S1 load; metric noise; and the `--fixed-filter` what-if (Jyotir's warming-node bug fixed in memory only) |
+| `final_eval_check.py` | checks on Riya's final evaluation: prints every number in `../report/final_evaluation_notes.md` and the S3 effect in `RESULTS.md` (finding 5), from her bundle and from re-runs that must reproduce her runs exactly |
 | `RESULTS.md` | what the sweep found on Parikshit's simulator, with the numbers, and the caveats |
 | `results/` | its bundle: `runs.csv`, `summary.csv`, `curves.csv.gz`, `manifest.json`, `tables.md`, `figures/` |
 | `RESULTS_standin.md`, `results_standin/` | the earlier sweep on the stand-in simulator, with the old reward scale; superseded |
@@ -31,6 +32,7 @@ python3 window_sweep/run_sweep.py --quick    # smoke run (the `quick:` subset in
 python3 window_sweep/make_figures.py         # figures into results/figures/
 python3 window_sweep/make_tables.py --update # tables into results/tables.md and RESULTS.md
 python3 window_sweep/diagnostics.py          # per-seed checks behind RESULTS.md (see its --help)
+python3 window_sweep/final_eval_check.py     # numbers for ../report/final_evaluation_notes.md (~2 min; --no-reruns: saved results only)
 ```
 
 `--save-logs` also writes every full decision log, in the brief §10.3 columns, to `results/raw/`; that folder is not in git.
