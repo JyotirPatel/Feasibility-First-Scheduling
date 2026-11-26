@@ -5,7 +5,7 @@
 ---
 
 ## Status Summary
-Router service, decision log format, policy interface, and integration adapter are complete. Two integration bugs exist in `jyotir_adapter.py` that must be fixed before standalone deployment works. One optional telemetry-age improvement flagged by Sur.
+Router service, decision log format, policy interface, integration adapter, and all integration bugs are complete. One optional telemetry-age improvement remains as a team decision.
 
 ---
 
@@ -21,42 +21,12 @@ Router service, decision log format, policy interface, and integration adapter a
 | Mock objects | `mock_policy.py`, `mock_reward.py`, `mock_simulator.py` for smoke tests |
 | Integration test scripts | `weekly_integration_check.py`, `run_end_to_end.py` |
 | Report sections | Introduction, System Design, Novelty sections drafted |
+| **Bug A — stale F1/F2 comments** | Fixed 2026-11-12: removed outdated comments describing pre-fix behaviour; replaced with accurate description |
+| **Bug B — wrong `JYOTIR_DIR` path** | Fixed 2026-11-12: changed `parents[2]` → `parents[4]`; path now resolves correctly to repo root's `Jyotir/` |
 
 ---
 
-## 2. Bugs to Fix (integration-blocking)
-
-### Bug A — Stale F1/F2 comments in `jyotir_adapter.py`
-**File:** `integration/jyotir_adapter.py`, lines 13–16
-```
-# F1  a node with status "warming" returns before the model/memory/power/temperature
-#     rules run, so a hot or full warming node is allowed.
-# F2  the memory rule ignores the size of the request (only kv_used_frac >= limit).
-```
-Both bugs were fixed by Jyotir (his commit 59b63af). These comments now falsely tell the grader that known bugs still exist. **Remove or rewrite them** to document the current correct behaviour.
-
-**Fix:** Delete lines 13–16 and replace with:
-```
-# Jyotir's filter as of commit 59b63af+: warming nodes go through all 5 rules;
-# the memory rule uses token-exact check with kv_cache_max_frac enforced.
-```
-
-### Bug B — Default `JYOTIR_DIR` resolves to wrong path
-**File:** `integration/jyotir_adapter.py`, line 29
-```python
-JYOTIR_DIR = Path(__file__).resolve().parents[2] / "Jyotir"
-```
-Because Krupesh's folder was uploaded one level deeper than the repo root, `parents[2]` resolves to `Krupesh/geo-inference-scheduler/` → `JYOTIR_DIR` becomes `Krupesh/geo-inference-scheduler/Jyotir/` which does not exist. The router works only because Riya's runner overrides this with `jyotir_adapter.JYOTIR_DIR = ROOT / "Jyotir"`. Running `uvicorn router_service.app:app` directly would fail at import time.
-
-**Fix:** `Parikshit/simulator/routers.py` already solves this for the simulator path; use the same pattern:
-```python
-JYOTIR_DIR = Path(__file__).resolve().parents[4] / "Jyotir"  # or use GEO_DIR detection
-```
-Or make `JYOTIR_DIR` resolve relative to the repo root by walking up until a known sentinel file is found.
-
----
-
-## 3. Optional Improvement
+## 2. Optional Improvement (team decision)
 
 ### Telemetry-age: count recent placements against power and temperature
 *(Sur RESULTS.md finding 8, item 3)*
@@ -71,8 +41,11 @@ Both are team decisions before the final run. Neither blocks current results.
 
 ---
 
-## 4. Final Integration Steps (after Bug A and B are fixed)
+## 3. Verification Step
 
-1. Run `run_end_to_end.py` standalone (without Riya's path override) to confirm `JYOTIR_DIR` resolves correctly.
+Before Riya's final 420-run grid:
+
+1. Run `run_end_to_end.py` standalone (without Riya's path override) to confirm `JYOTIR_DIR` now resolves correctly with `parents[4]`.
 2. Confirm `weekly_integration_check.py` passes on the latest code from all members.
-3. No further router-side changes are expected before Riya's final 420-run grid.
+
+No further router-side code changes are expected.
